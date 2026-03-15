@@ -137,8 +137,8 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
       css += `.folio-header-editable,.folio-footer-editable{cursor:text;border-radius:2px;outline:2px solid transparent;transition:outline 0.15s}\n`;
       css += `.folio-header-editable:hover,.folio-footer-editable:hover{outline:1px dashed #ccc}\n`;
       css += `.folio-header-editable:focus,.folio-footer-editable:focus{outline:2px dashed #4285f4;color:#333}\n`;
-      css += `.folio-header-editable:empty::before{content:'Click to add header';color:#bbb;font-style:italic}\n`;
-      css += `.folio-footer-editable:empty::before{content:'Click to add footer';color:#bbb;font-style:italic}\n`;
+      css += `.folio-header-editable:empty::before{content:'';color:#bbb;font-style:italic}\n`;
+      css += `.folio-footer-editable:empty::before{content:'';color:#bbb;font-style:italic}\n`;
     }
     const minHeight = pageCount * opts.pageHeight + (pageCount - 1) * opts.pageGap;
     css += `.ProseMirror{min-height:${minHeight}px !important}\n`;
