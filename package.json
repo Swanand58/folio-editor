@@ -27,6 +27,7 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
@@ -72,6 +73,7 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-bold": "^2.11.0",
     "@tiptap/extension-bullet-list": "^2.11.0",
