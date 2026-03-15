@@ -13,6 +13,7 @@ export interface PaginationEngineOptions {
   headerHeight: number;
   footerHeight: number;
   pageGap: number;
+  pageBreakBackground: string;
   showPageNumber: boolean;
   pageNumberPosition: 'top' | 'bottom';
   pageNumberAlignment: 'left' | 'center' | 'right';
@@ -26,156 +27,350 @@ export interface PaginationEngineOptions {
 }
 
 /**
- * Visual pagination plugin.
+ * Content-aware pagination plugin.
  *
- * Instead of splitting content into structural page nodes (which fights
- * ProseMirror's editing model), this plugin:
+ * Instead of masking fixed zones (which clips content mid-element), this plugin:
+ * 1. Measures all top-level block children in the editor
+ * 2. Finds the last block that fully fits within each page's content area
+ * 3. Injects CSS margin-bottom on that block to push subsequent content to the
+ *    next page, creating real gaps aligned with block element boundaries
+ * 4. Renders per-page card backgrounds, gap bars, headers, footers, page numbers
  *
- * 1. Lets content flow naturally in a single document
- * 2. Measures rendered content height after each change
- * 3. Overlays visual page breaks, headers, footers, and page numbers
- *    using absolutely-positioned DOM elements
- *
- * This approach:
- * - Never dispatches transactions (no infinite loops)
- * - Never modifies the ProseMirror document structure
- * - Never resets scroll position
- * - Works with native copy/paste, selection, undo/redo
+ * The CSS is injected via a <style> element in <head> (not inline styles on editor
+ * children), so ProseMirror's MutationObserver is never triggered.
  */
 export function createPaginationPlugin(options: PaginationEngineOptions): Plugin {
   let overlayContainer: HTMLDivElement | null = null;
+  let pageBackgrounds: HTMLDivElement | null = null;
+  let breakStyleEl: HTMLStyleElement | null = null;
   let rafId: number | null = null;
+  let prevDoc: unknown = null;
+  let resizeObserver: ResizeObserver | null = null;
+
+  function schedule(view: EditorView) {
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      repaginate(view);
+    });
+  }
+
+  function repaginate(view: EditorView) {
+    if (!overlayContainer || !breakStyleEl) return;
+
+    const editor = view.dom as HTMLElement;
+    const parent = editor.parentElement;
+
+    // Re-apply positioning on every cycle (React re-renders may clear inline styles)
+    if (parent) {
+      parent.style.position = 'relative';
+      parent.style.zIndex = '0';
+    }
+
+    if (view.state.doc === prevDoc) return;
+    prevDoc = view.state.doc;
+
+    const opts = options;
+
+    const paddingTop = opts.marginTop + opts.headerHeight;
+    const paddingBottom = opts.marginBottom + opts.footerHeight;
+    const contentAreaHeight = opts.pageHeight - paddingTop - paddingBottom;
+    const gapBridge = paddingBottom + opts.pageGap + paddingTop;
+
+    // --- Step 1: Clear injected break styles to get a "clean" layout ---
+    const savedScrollY = window.scrollY;
+    breakStyleEl.textContent = '';
+    void editor.offsetHeight; // synchronous reflow
+
+    const children = Array.from(editor.children) as HTMLElement[];
+
+    // --- Step 2: Find page break points in the clean layout ---
+    const breaks = findBreaks(children, paddingTop, contentAreaHeight);
+    const pageCount = breaks.length + 1;
+
+    // --- Step 3: Inject CSS margins to create real content gaps ---
+    let css = '';
+    for (const brk of breaks) {
+      const nthChild = brk.childIndex + 1; // CSS nth-child is 1-indexed
+      const totalMargin = brk.remainingSpace + gapBridge;
+      css += `.ProseMirror > :nth-child(${nthChild}){margin-bottom:${totalMargin}px !important}\n`;
+    }
+    const minHeight = pageCount * opts.pageHeight + (pageCount - 1) * opts.pageGap;
+    css += `.ProseMirror{min-height:${minHeight}px !important}\n`;
+
+    breakStyleEl.textContent = css;
+    void editor.offsetHeight; // reflow with injected margins
+    window.scrollTo(0, savedScrollY);
+
+    // --- Step 4: Compute actual page positions after margin injection ---
+    const editorTop = editor.offsetTop;
+    const editorLeft = editor.offsetLeft;
+    const editorWidth = editor.offsetWidth;
+    const contentLeft = editorLeft + opts.marginLeft;
+    const contentWidth = editorWidth - opts.marginLeft - opts.marginRight;
+
+    const pageStartYs: number[] = [editorTop];
+    const gapYPositions: number[] = [];
+    for (const brk of breaks) {
+      const childBottom = children[brk.childIndex].offsetTop + children[brk.childIndex].offsetHeight;
+      const gapY = editorTop + childBottom + brk.remainingSpace + paddingBottom;
+      gapYPositions.push(gapY);
+      pageStartYs.push(gapY + opts.pageGap);
+    }
+
+    // --- Step 5: Render visual elements ---
+    overlayContainer.innerHTML = '';
+    if (pageBackgrounds) pageBackgrounds.innerHTML = '';
+
+    const bgColor = opts.pageBreakBackground || '#e8e8e8';
+
+    for (let i = 0; i < pageCount; i++) {
+      const pageY = pageStartYs[i];
+
+      // Per-page white card with shadow
+      pageBackgrounds?.appendChild(makeEl({
+        position: 'absolute',
+        top: `${pageY}px`,
+        left: `${editorLeft}px`,
+        width: `${editorWidth}px`,
+        height: `${opts.pageHeight}px`,
+        background: '#ffffff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+        borderRadius: '2px',
+      }));
+
+      // Header
+      if (opts.headerEnabled && opts.headerHTML) {
+        const headerY = pageY + (opts.marginTop - opts.headerHeight) / 2;
+        const header = makeEl({
+          position: 'absolute',
+          top: `${headerY}px`,
+          left: `${contentLeft}px`,
+          width: `${contentWidth}px`,
+          height: `${opts.headerHeight}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '11px',
+          color: '#999',
+          overflow: 'hidden',
+          zIndex: '5',
+        });
+        header.innerHTML = opts.headerHTML;
+        overlayContainer.appendChild(header);
+      }
+
+      // Footer
+      if (opts.footerEnabled && opts.footerHTML) {
+        const footerY = pageY + opts.pageHeight - opts.marginBottom
+          + (opts.marginBottom - opts.footerHeight) / 2;
+        const footer = makeEl({
+          position: 'absolute',
+          top: `${footerY}px`,
+          left: `${contentLeft}px`,
+          width: `${contentWidth}px`,
+          height: `${opts.footerHeight}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '11px',
+          color: '#999',
+          overflow: 'hidden',
+          zIndex: '5',
+        });
+        footer.innerHTML = opts.footerHTML;
+        overlayContainer.appendChild(footer);
+      }
+
+      // Page number
+      const pageNum = i + 1;
+      const showNum = opts.showPageNumber && (opts.showPageNumberOnFirst || pageNum > 1);
+      if (showNum) {
+        const atBottom = opts.pageNumberPosition === 'bottom';
+        const pnY = atBottom
+          ? pageY + opts.pageHeight - opts.marginBottom + (opts.marginBottom - 20) / 2
+          : pageY + (opts.marginTop - 20) / 2;
+        const pn = makeEl({
+          position: 'absolute',
+          top: `${pnY}px`,
+          left: `${contentLeft}px`,
+          width: `${contentWidth}px`,
+          height: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          fontSize: '11px',
+          color: '#999',
+          zIndex: '5',
+          justifyContent:
+            opts.pageNumberAlignment === 'left'
+              ? 'flex-start'
+              : opts.pageNumberAlignment === 'right'
+                ? 'flex-end'
+                : 'center',
+        });
+        pn.textContent = formatPageNumber(opts, pageNum, pageCount);
+        overlayContainer.appendChild(pn);
+      }
+
+      // Gap bar between pages
+      if (i < pageCount - 1) {
+        overlayContainer.appendChild(makeEl({
+          position: 'absolute',
+          top: `${gapYPositions[i]}px`,
+          left: `${editorLeft}px`,
+          width: `${editorWidth}px`,
+          height: `${opts.pageGap}px`,
+          background: bgColor,
+          zIndex: '4',
+          borderTop: '1px solid #d0d0d0',
+          borderBottom: '1px solid #d0d0d0',
+          boxSizing: 'border-box',
+        }));
+      }
+    }
+
+    const totalHeight = pageStartYs[pageCount - 1] + opts.pageHeight;
+    overlayContainer.style.height = `${totalHeight}px`;
+    if (pageBackgrounds) pageBackgrounds.style.height = `${totalHeight}px`;
+  }
 
   return new Plugin({
     key: paginationPluginKey,
 
     view(view: EditorView) {
+      const parent = view.dom.parentElement;
+      if (!parent) return {};
+
+      parent.style.position = 'relative';
+      parent.style.zIndex = '0';
+
+      // Background layer for per-page card shadows (z-index -1, behind editor)
+      pageBackgrounds = document.createElement('div');
+      pageBackgrounds.className = 'folio-page-backgrounds';
+      Object.assign(pageBackgrounds.style, {
+        position: 'absolute', top: '0', left: '0', width: '100%',
+        pointerEvents: 'none', zIndex: '-1',
+      });
+      parent.insertBefore(pageBackgrounds, parent.firstChild);
+
+      // Overlay layer for gap bars, headers, footers, page numbers (z-index 10)
       overlayContainer = document.createElement('div');
-      overlayContainer.className = 'folio-overlay-container';
-      overlayContainer.style.position = 'absolute';
-      overlayContainer.style.top = '0';
-      overlayContainer.style.left = '0';
-      overlayContainer.style.right = '0';
-      overlayContainer.style.pointerEvents = 'none';
-      overlayContainer.style.zIndex = '10';
+      overlayContainer.className = 'folio-overlays';
+      overlayContainer.setAttribute('data-folio-overlay', '');
+      Object.assign(overlayContainer.style, {
+        position: 'absolute', top: '0', left: '0', width: '100%',
+        pointerEvents: 'none', zIndex: '10',
+      });
+      parent.appendChild(overlayContainer);
 
-      // The editor's parent needs position:relative for absolute overlay
-      const editorParent = view.dom.parentElement;
-      if (editorParent) {
-        editorParent.style.position = 'relative';
-      }
-      view.dom.parentElement?.appendChild(overlayContainer);
+      // <style> element in <head> for break margin injections
+      breakStyleEl = document.createElement('style');
+      breakStyleEl.setAttribute('data-folio-breaks', '');
+      document.head.appendChild(breakStyleEl);
 
-      // Initial render
-      scheduleRender(view);
+      // Re-paginate when the editor element resizes (text reflows)
+      resizeObserver = new ResizeObserver(() => {
+        prevDoc = null;
+        schedule(view);
+      });
+      resizeObserver.observe(view.dom);
+
+      schedule(view);
 
       return {
-        update() {
-          scheduleRender(view);
-        },
+        update() { schedule(view); },
         destroy() {
           if (rafId !== null) cancelAnimationFrame(rafId);
+          resizeObserver?.disconnect();
           overlayContainer?.remove();
+          pageBackgrounds?.remove();
+          breakStyleEl?.remove();
           overlayContainer = null;
+          pageBackgrounds = null;
+          breakStyleEl = null;
+          prevDoc = null;
+          resizeObserver = null;
         },
       };
     },
   });
-
-  function scheduleRender(view: EditorView) {
-    if (rafId !== null) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(() => {
-      rafId = null;
-      renderPageOverlays(view, options, overlayContainer);
-    });
-  }
 }
 
-function renderPageOverlays(
-  view: EditorView,
-  options: PaginationEngineOptions,
-  container: HTMLDivElement | null
-): void {
-  if (!container) return;
+// ---------------------------------------------------------------------------
+// Break-point detection
+// ---------------------------------------------------------------------------
 
-  const editorDom = view.dom;
-  const editorRect = editorDom.getBoundingClientRect();
-  const contentHeight = options.pageHeight - options.marginTop - options.marginBottom -
-    (options.headerEnabled ? options.headerHeight : 0) -
-    (options.footerEnabled ? options.footerHeight : 0);
+interface BreakPoint {
+  childIndex: number;
+  remainingSpace: number;
+}
 
-  const totalContentHeight = editorDom.scrollHeight;
-  const pageCount = Math.max(1, Math.ceil(totalContentHeight / contentHeight));
+/**
+ * Walk the editor's direct block children and find where each page break
+ * should go. A break is placed after the last child whose bottom edge fits
+ * within the current page's content area.
+ */
+function findBreaks(
+  children: HTMLElement[],
+  firstPageStart: number,
+  contentAreaHeight: number,
+): BreakPoint[] {
+  const result: BreakPoint[] = [];
+  let startIdx = 0;
+  let searchFrom = firstPageStart;
 
-  // Clear previous overlays
-  container.innerHTML = '';
-  container.style.height = `${pageCount * options.pageHeight + (pageCount - 1) * options.pageGap}px`;
+  for (let safety = 0; safety < 200; safety++) {
+    const pageEnd = searchFrom + contentAreaHeight;
+    let lastFittingIdx = -1;
+    let lastFittingBottom = searchFrom;
 
-  for (let i = 0; i < pageCount; i++) {
-    const pageTop = i * (options.pageHeight + options.pageGap);
-
-    // Page break line (between pages)
-    if (i > 0) {
-      const breakEl = document.createElement('div');
-      breakEl.className = 'folio-page-break';
-      breakEl.style.position = 'absolute';
-      breakEl.style.top = `${pageTop - options.pageGap}px`;
-      breakEl.style.left = '0';
-      breakEl.style.right = '0';
-      breakEl.style.height = `${options.pageGap}px`;
-      container.appendChild(breakEl);
-    }
-
-    // Header
-    if (options.headerEnabled && options.headerHTML) {
-      const header = document.createElement('div');
-      header.className = 'folio-header';
-      header.innerHTML = options.headerHTML;
-      header.style.position = 'absolute';
-      header.style.top = `${pageTop + 8}px`;
-      header.style.left = `${options.marginLeft}px`;
-      header.style.right = `${options.marginRight}px`;
-      header.style.height = `${options.headerHeight}px`;
-      container.appendChild(header);
-    }
-
-    // Page number
-    const showNumber = options.showPageNumber && (options.showPageNumberOnFirst || i > 0);
-    if (showNumber) {
-      const pn = document.createElement('div');
-      pn.className = 'folio-page-number';
-      const text = options.pageNumberFormat
-        ? options.pageNumberFormat(i + 1, pageCount)
-        : options.showTotalPages
-          ? `${i + 1} / ${pageCount}`
-          : `${i + 1}`;
-      pn.textContent = text;
-
-      pn.style.position = 'absolute';
-      pn.style.left = `${options.marginLeft}px`;
-      pn.style.right = `${options.marginRight}px`;
-
-      if (options.pageNumberPosition === 'bottom') {
-        pn.style.top = `${pageTop + options.pageHeight - options.marginBottom + 4}px`;
+    for (let i = startIdx; i < children.length; i++) {
+      const bottom = children[i].offsetTop + children[i].offsetHeight;
+      if (bottom <= pageEnd) {
+        lastFittingIdx = i;
+        lastFittingBottom = bottom;
       } else {
-        pn.style.top = `${pageTop + 8}px`;
+        break;
       }
-
-      pn.setAttribute('data-align', options.pageNumberAlignment);
-      container.appendChild(pn);
     }
 
-    // Footer
-    if (options.footerEnabled && options.footerHTML) {
-      const footer = document.createElement('div');
-      footer.className = 'folio-footer';
-      footer.innerHTML = options.footerHTML;
-      footer.style.position = 'absolute';
-      footer.style.top = `${pageTop + options.pageHeight - options.marginBottom - options.footerHeight}px`;
-      footer.style.left = `${options.marginLeft}px`;
-      footer.style.right = `${options.marginRight}px`;
-      footer.style.height = `${options.footerHeight}px`;
-      container.appendChild(footer);
+    // If no child fits, force the first one onto this page (oversized element)
+    if (lastFittingIdx === -1 && startIdx < children.length) {
+      lastFittingIdx = startIdx;
+      lastFittingBottom = children[startIdx].offsetTop + children[startIdx].offsetHeight;
     }
+
+    if (lastFittingIdx === -1 || lastFittingIdx >= children.length - 1) break;
+
+    result.push({
+      childIndex: lastFittingIdx,
+      remainingSpace: Math.max(0, pageEnd - lastFittingBottom),
+    });
+
+    startIdx = lastFittingIdx + 1;
+    if (startIdx >= children.length) break;
+    searchFrom = children[startIdx].offsetTop;
   }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// DOM helpers
+// ---------------------------------------------------------------------------
+
+function makeEl(styles: Record<string, string>): HTMLDivElement {
+  const el = document.createElement('div');
+  el.style.pointerEvents = 'none';
+  Object.assign(el.style, styles);
+  return el;
+}
+
+function formatPageNumber(
+  opts: PaginationEngineOptions,
+  current: number,
+  total: number,
+): string {
+  if (opts.pageNumberFormat) return opts.pageNumberFormat(current, total);
+  return opts.showTotalPages ? `${current} / ${total}` : `${current}`;
 }

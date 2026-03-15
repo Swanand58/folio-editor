@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import type { FolioConfig, DeepPartial, Margin, PageSize, HeaderFooterConfig, PageNumberConfig } from '../types';
 import { PAGE_SIZES, DEFAULT_PAGE_SIZE } from '../layout/presets';
-import { DEFAULT_MARGINS, getContentHeight } from '../layout/margins';
+import { DEFAULT_MARGINS } from '../layout/margins';
 import { DEFAULT_HEADER, DEFAULT_FOOTER, DEFAULT_PAGE_NUMBER } from '../layout/header-footer';
 import { createPaginationPlugin } from '../pagination/PaginationPlugin';
 import { injectStyles, removeStyles } from '../styles/injector';
@@ -130,6 +130,7 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
         pageNumberFormat: pageNumber.format,
         headerHTML: header.render ? header.render() : '',
         footerHTML: footer.render ? footer.render() : '',
+        pageBreakBackground: this.options.pageBreakBackground ?? '#e8e8e8',
         headerEnabled: header.enabled,
         footerEnabled: footer.enabled,
       }),
