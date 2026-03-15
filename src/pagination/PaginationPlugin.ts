@@ -106,15 +106,22 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
     const children = Array.from(editor.children) as HTMLElement[];
 
     // --- Step 2: Find page break points in the clean layout ---
-    const breaks = findBreaks(children, paddingTop, contentAreaHeight);
+    const breaks = findBreaks(children, paddingTop, contentAreaHeight, editor);
     const pageCount = breaks.length + 1;
 
     // --- Step 3: Inject CSS margins to create real content gaps ---
     let css = '';
     for (const brk of breaks) {
-      const nthChild = brk.childIndex + 1; // CSS nth-child is 1-indexed
-      const totalMargin = brk.remainingSpace + gapBridge;
-      css += `.ProseMirror > :nth-child(${nthChild}){margin-bottom:${totalMargin}px !important}\n`;
+      const nthChild = brk.childIndex + 1;
+      if (brk.tableRowIndex !== undefined) {
+        const nthRow = brk.tableRowIndex + 1;
+        const totalPad = brk.remainingSpace + gapBridge;
+        const sel = `.ProseMirror > :nth-child(${nthChild}) table tr:nth-child(${nthRow})`;
+        css += `${sel} > td,${sel} > th{padding-bottom:${totalPad}px !important}\n`;
+      } else {
+        const totalMargin = brk.remainingSpace + gapBridge;
+        css += `.ProseMirror > :nth-child(${nthChild}){margin-bottom:${totalMargin}px !important}\n`;
+      }
     }
     const minHeight = pageCount * opts.pageHeight + (pageCount - 1) * opts.pageGap;
     css += `.ProseMirror{min-height:${minHeight}px !important}\n`;
@@ -133,8 +140,16 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
     const pageStartYs: number[] = [editorTop];
     const gapYPositions: number[] = [];
     for (const brk of breaks) {
-      const childBottom = children[brk.childIndex].offsetTop + children[brk.childIndex].offsetHeight;
-      const gapY = editorTop + childBottom + brk.remainingSpace + paddingBottom;
+      let effectiveBottom: number;
+      if (brk.tableRowIndex !== undefined) {
+        const rows = getTableRows(children[brk.childIndex]);
+        const breakRow = rows[brk.tableRowIndex];
+        const rowBottomAfterInj = offsetRelTo(breakRow, editor) + breakRow.offsetHeight;
+        effectiveBottom = rowBottomAfterInj - brk.remainingSpace - gapBridge;
+      } else {
+        effectiveBottom = children[brk.childIndex].offsetTop + children[brk.childIndex].offsetHeight;
+      }
+      const gapY = editorTop + effectiveBottom + brk.remainingSpace + paddingBottom;
       gapYPositions.push(gapY);
       pageStartYs.push(gapY + opts.pageGap);
     }
@@ -248,6 +263,40 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           boxSizing: 'border-box',
         }));
       }
+
+      // White masks and closing border for table breaks
+      if (i < pageCount - 1 && breaks[i].tableRowIndex !== undefined) {
+        const maskY = pageY + opts.pageHeight - paddingBottom;
+        overlayContainer.appendChild(makeEl({
+          position: 'absolute',
+          top: `${maskY}px`,
+          left: `${editorLeft}px`,
+          width: `${editorWidth}px`,
+          height: `${paddingBottom}px`,
+          background: '#ffffff',
+          zIndex: '3',
+        }));
+        overlayContainer.appendChild(makeEl({
+          position: 'absolute',
+          top: `${maskY}px`,
+          left: `${contentLeft}px`,
+          width: `${contentWidth}px`,
+          height: '0',
+          borderTop: '1px solid #d0d0d0',
+          zIndex: '5',
+        }));
+      }
+      if (i > 0 && breaks[i - 1].tableRowIndex !== undefined) {
+        overlayContainer.appendChild(makeEl({
+          position: 'absolute',
+          top: `${pageY}px`,
+          left: `${editorLeft}px`,
+          width: `${editorWidth}px`,
+          height: `${paddingTop}px`,
+          background: '#ffffff',
+          zIndex: '3',
+        }));
+      }
     }
 
     const totalHeight = pageStartYs[pageCount - 1] + opts.pageHeight;
@@ -331,20 +380,23 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
 interface BreakPoint {
   childIndex: number;
   remainingSpace: number;
+  tableRowIndex?: number;
 }
 
 /**
  * Walk the editor's direct block children and find where each page break
  * should go. A break is placed after the last child whose bottom edge fits
- * within the current page's content area.
+ * within the current page's content area. Tables can be split at row boundaries.
  */
 function findBreaks(
   children: HTMLElement[],
   firstPageStart: number,
   contentAreaHeight: number,
+  editorEl: HTMLElement,
 ): BreakPoint[] {
   const result: BreakPoint[] = [];
   let startIdx = 0;
+  let startRowIdx = 0;
   let searchFrom = firstPageStart;
 
   for (let safety = 0; safety < 200; safety++) {
@@ -352,9 +404,9 @@ function findBreaks(
     let lastFittingIdx = -1;
     let lastFittingBottom = searchFrom;
     let hitPageBreak = -1;
+    let tableBreak: BreakPoint | null = null;
 
     for (let i = startIdx; i < children.length; i++) {
-      // Forced page break — stop the current page here
       if (children[i].hasAttribute('data-page-break')) {
         hitPageBreak = i;
         break;
@@ -364,11 +416,18 @@ function findBreaks(
       if (bottom <= pageEnd) {
         lastFittingIdx = i;
         lastFittingBottom = bottom;
+        startRowIdx = 0;
       } else {
+        tableBreak = tryTableSplit(
+          children[i], i, pageEnd,
+          i === startIdx ? startRowIdx : 0,
+          editorEl,
+        );
         break;
       }
     }
 
+    // Forced page breaks
     if (hitPageBreak >= 0) {
       if (lastFittingIdx >= startIdx) {
         result.push({
@@ -376,14 +435,32 @@ function findBreaks(
           remainingSpace: Math.max(0, pageEnd - lastFittingBottom),
         });
       }
-      // Skip past the page break element for the next page
       startIdx = hitPageBreak + 1;
+      startRowIdx = 0;
       if (startIdx >= children.length) break;
       searchFrom = children[startIdx].offsetTop;
       continue;
     }
 
-    // --- Normal overflow break (unchanged) ---
+    // Intra-table break (takes priority — fits more content on this page)
+    if (tableBreak) {
+      result.push(tableBreak);
+      const rows = getTableRows(children[tableBreak.childIndex]);
+      const nextRow = (tableBreak.tableRowIndex ?? 0) + 1;
+      if (nextRow < rows.length) {
+        startIdx = tableBreak.childIndex;
+        startRowIdx = nextRow;
+        searchFrom = offsetRelTo(rows[nextRow], editorEl);
+      } else {
+        startIdx = tableBreak.childIndex + 1;
+        startRowIdx = 0;
+        if (startIdx >= children.length) break;
+        searchFrom = children[startIdx].offsetTop;
+      }
+      continue;
+    }
+
+    // Normal overflow break
     if (lastFittingIdx === -1 && startIdx < children.length) {
       lastFittingIdx = startIdx;
       lastFittingBottom = children[startIdx].offsetTop + children[startIdx].offsetHeight;
@@ -397,11 +474,63 @@ function findBreaks(
     });
 
     startIdx = lastFittingIdx + 1;
+    startRowIdx = 0;
     if (startIdx >= children.length) break;
     searchFrom = children[startIdx].offsetTop;
   }
 
   return result;
+}
+
+function tryTableSplit(
+  child: HTMLElement,
+  childIndex: number,
+  pageEnd: number,
+  fromRow: number,
+  editorEl: HTMLElement,
+): BreakPoint | null {
+  const rows = getTableRows(child);
+  if (rows.length < 2) return null;
+
+  let lastFittingRow = -1;
+  let lastFittingRowBottom = 0;
+
+  for (let r = fromRow; r < rows.length; r++) {
+    const rowBottom = offsetRelTo(rows[r], editorEl) + rows[r].offsetHeight;
+    if (rowBottom <= pageEnd) {
+      lastFittingRow = r;
+      lastFittingRowBottom = rowBottom;
+    } else {
+      break;
+    }
+  }
+
+  if (lastFittingRow < fromRow || lastFittingRow >= rows.length - 1) return null;
+
+  return {
+    childIndex,
+    tableRowIndex: lastFittingRow,
+    remainingSpace: Math.max(0, pageEnd - lastFittingRowBottom),
+  };
+}
+
+function getTableRows(wrapper: HTMLElement): HTMLElement[] {
+  const table = wrapper.querySelector('table');
+  if (!table) return [];
+  const tbody = table.querySelector('tbody') || table;
+  return Array.from(tbody.children).filter(
+    (el): el is HTMLElement => el.tagName === 'TR',
+  );
+}
+
+function offsetRelTo(el: HTMLElement, ancestor: HTMLElement): number {
+  let top = 0;
+  let node: HTMLElement | null = el;
+  while (node && node !== ancestor) {
+    top += node.offsetTop;
+    node = node.offsetParent as HTMLElement | null;
+  }
+  return top;
 }
 
 // ---------------------------------------------------------------------------

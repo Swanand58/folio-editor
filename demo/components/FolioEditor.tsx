@@ -30,6 +30,16 @@ const SAMPLE_CONTENT = `
   <tr><td>Headers/Footers</td><td>Done</td><td>Static content on every page</td></tr>
   <tr><td>Print support</td><td>Done</td><td>Ctrl+P for print-ready output</td></tr>
   <tr><td>Copy/Paste</td><td>Done</td><td>Native clipboard support</td></tr>
+  <tr><td>Forced breaks</td><td>Done</td><td>Cmd+Shift+Enter inserts page break</td></tr>
+  <tr><td>Page state API</td><td>Done</td><td>getPageInfo, scrollToPage, events</td></tr>
+  <tr><td>Table splitting</td><td>Done</td><td>Tables split at row boundaries across pages</td></tr>
+  <tr><td>Header repetition</td><td>Done</td><td>Table headers repeat on continuation pages</td></tr>
+  <tr><td>Paragraph split</td><td>Planned</td><td>Line-level breaks within paragraphs</td></tr>
+  <tr><td>Custom themes</td><td>Planned</td><td>Theming API for page appearance</td></tr>
+  <tr><td>Export PDF</td><td>Planned</td><td>Client-side PDF generation</td></tr>
+  <tr><td>Collaboration</td><td>Planned</td><td>Real-time multi-user editing</td></tr>
+  <tr><td>Comments</td><td>Planned</td><td>Inline annotations and discussions</td></tr>
+  <tr><td>Track changes</td><td>Planned</td><td>Revision history with accept/reject</td></tr>
 </table>
 
 <h2>How It Works</h2>

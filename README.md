@@ -7,6 +7,7 @@ A paginated document editor for React/Next.js. Automatic page breaks, headers/fo
 ## Features
 
 - **Content-aware page breaks** — breaks fall between block elements, never mid-paragraph
+- **Table splitting** — large tables split at row boundaries across pages with clean closing borders
 - **Forced page breaks** — `PageBreak` node + `editor.commands.insertPageBreak()` (keyboard: `Cmd+Shift+Enter`)
 - **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `scrollToPage()`
 - **Multiple page sizes**: A4, A3, A5, US Letter, Legal, Tabloid
@@ -23,8 +24,8 @@ A paginated document editor for React/Next.js. Automatic page breaks, headers/fo
 Content flows in a single continuous ProseMirror document. The pagination plugin:
 
 1. Measures all top-level block elements in the editor
-2. Finds the last block that fully fits within each page's content area
-3. Injects CSS `margin-bottom` on that block (via a `<style>` in `<head>`, invisible to ProseMirror's MutationObserver)
+2. Finds the last block that fully fits within each page's content area (tables are split at row boundaries)
+3. Injects CSS `margin-bottom` (blocks) or `padding-bottom` (table rows) via a `<style>` in `<head>`, invisible to ProseMirror's MutationObserver
 4. Renders per-page card backgrounds, gap bars, headers, footers, and page numbers as DOM overlays
 
 This means scrolling, copy/paste, selection, and undo/redo all work natively.
@@ -147,7 +148,7 @@ editor.view.dom.addEventListener('foliopagechange', () => {
 ## Roadmap
 
 - [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
-- [~] Phase 2: Forced page breaks, page state API, table splitting, paragraph splitting
+- [~] Phase 2: Forced page breaks ✓, page state API ✓, table splitting ✓, paragraph splitting
 - [ ] Phase 3: SVG, charts, math equations, table of contents
 - [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 
