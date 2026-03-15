@@ -17,14 +17,14 @@ export interface PageDecorationsOptions {
 export const pageDecorationsKey = new PluginKey('folioPageDecorations');
 
 /**
- * Plugin that injects header, footer, and page number elements into
- * each page's DOM. These are non-editable overlays positioned absolutely
- * within the page container.
+ * Renders header, footer, and page number overlays on each page.
+ * These are non-editable DOM elements positioned absolutely within
+ * the page container, injected after each render via rAF.
  */
 export function createPageDecorationsPlugin(
   options: PageDecorationsOptions
 ): Plugin {
-  let lastPageCount = 0;
+  let rafId: number | null = null;
 
   return new Plugin({
     key: pageDecorationsKey,
@@ -32,10 +32,17 @@ export function createPageDecorationsPlugin(
     view() {
       return {
         update(view: EditorView) {
-          requestAnimationFrame(() => renderDecorations(view, options));
+          if (rafId !== null) cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            renderDecorations(view, options);
+          });
         },
         destroy() {
-          // Decorations are children of page elements, removed automatically
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+          }
         },
       };
     },
@@ -55,21 +62,19 @@ function renderDecorations(
 
     // Header
     if (options.headerEnabled) {
-      let header = pageEl.querySelector('.folio-header') as HTMLElement;
+      let header = pageEl.querySelector(':scope > .folio-header') as HTMLElement;
       if (!header) {
         header = document.createElement('div');
         header.className = 'folio-header';
         header.contentEditable = 'false';
-        pageEl.insertBefore(header, pageEl.firstChild);
+        pageEl.appendChild(header);
       }
       header.innerHTML = options.headerHTML;
-    } else {
-      pageEl.querySelector('.folio-header')?.remove();
     }
 
-    // Footer
+    // Footer container
     if (options.footerEnabled) {
-      let footer = pageEl.querySelector('.folio-footer') as HTMLElement;
+      let footer = pageEl.querySelector(':scope > .folio-footer') as HTMLElement;
       if (!footer) {
         footer = document.createElement('div');
         footer.className = 'folio-footer';
@@ -77,27 +82,18 @@ function renderDecorations(
         pageEl.appendChild(footer);
       }
       footer.innerHTML = options.footerHTML;
-    } else {
-      pageEl.querySelector('.folio-footer')?.remove();
     }
 
     // Page number
-    const shouldShowNumber =
-      options.showPageNumber && (options.showPageNumberOnFirst || pageNum > 1);
+    const shouldShow = options.showPageNumber && (options.showPageNumberOnFirst || pageNum > 1);
 
-    if (shouldShowNumber) {
-      const position = options.pageNumberPosition;
-      const container =
-        position === 'top'
-          ? pageEl.querySelector('.folio-header') || createOverlay(pageEl, 'folio-header-pn', 'top')
-          : pageEl.querySelector('.folio-footer') || createOverlay(pageEl, 'folio-footer-pn', 'bottom');
-
-      let pnEl = pageEl.querySelector('.folio-page-number') as HTMLElement;
+    if (shouldShow) {
+      let pnEl = pageEl.querySelector(':scope > .folio-page-number') as HTMLElement;
       if (!pnEl) {
-        pnEl = document.createElement('span');
+        pnEl = document.createElement('div');
         pnEl.className = 'folio-page-number';
         pnEl.contentEditable = 'false';
-        container.appendChild(pnEl);
+        pageEl.appendChild(pnEl);
       }
 
       const text = options.pageNumberFormat
@@ -107,44 +103,10 @@ function renderDecorations(
           : `${pageNum}`;
 
       pnEl.textContent = text;
-
-      if (container.classList.contains('folio-footer') || container.classList.contains('folio-footer-pn')) {
-        container.setAttribute('data-align', options.pageNumberAlignment);
-      }
+      pnEl.setAttribute('data-position', options.pageNumberPosition);
+      pnEl.setAttribute('data-align', options.pageNumberAlignment);
     } else {
-      pageEl.querySelector('.folio-page-number')?.remove();
-      pageEl.querySelector('.folio-header-pn')?.remove();
-      pageEl.querySelector('.folio-footer-pn')?.remove();
+      pageEl.querySelector(':scope > .folio-page-number')?.remove();
     }
   });
-}
-
-function createOverlay(
-  pageEl: HTMLElement,
-  className: string,
-  position: 'top' | 'bottom'
-): HTMLElement {
-  const el = document.createElement('div');
-  el.className = className;
-  el.contentEditable = 'false';
-  el.style.position = 'absolute';
-  el.style[position] = '0';
-  el.style.left = '72px';
-  el.style.right = '72px';
-  el.style.height = '40px';
-  el.style.display = 'flex';
-  el.style.alignItems = 'center';
-  el.style.justifyContent = 'center';
-  el.style.fontSize = '11px';
-  el.style.color = '#999';
-  el.style.pointerEvents = 'none';
-
-  if (position === 'top') {
-    el.style.paddingTop = '24px';
-  } else {
-    el.style.paddingBottom = '24px';
-  }
-
-  pageEl.appendChild(el);
-  return el;
 }

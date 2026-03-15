@@ -1,11 +1,13 @@
 import { Node } from '@tiptap/core';
 
 /**
- * Replaces the default TipTap Document node.
- * Enforces that the document can only contain `page` nodes at the top level.
+ * Document node that allows standard block content.
+ * Pages are rendered visually via CSS, not as ProseMirror nodes.
+ * This avoids fighting ProseMirror's editing model with structural
+ * page nodes that need constant redistribution.
  */
 export const PageDocument = Node.create({
   name: 'doc',
   topNode: true,
-  content: 'page+',
+  content: 'block+',
 });

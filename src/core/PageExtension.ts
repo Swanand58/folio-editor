@@ -4,16 +4,15 @@ import { PAGE_SIZES, DEFAULT_PAGE_SIZE } from '../layout/presets';
 import { DEFAULT_MARGINS, getContentHeight } from '../layout/margins';
 import { DEFAULT_HEADER, DEFAULT_FOOTER, DEFAULT_PAGE_NUMBER } from '../layout/header-footer';
 import { createPaginationPlugin } from '../pagination/PaginationPlugin';
-import { createPageDecorationsPlugin } from './PageDecorationsPlugin';
 import { injectStyles, removeStyles } from '../styles/injector';
 import { generateStyles } from '../styles/base';
+import { toPx } from '../utils/units';
 
 export interface FolioExtensionOptions extends DeepPartial<FolioConfig> {}
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     folioExtension: {
-      recomputePagination: () => ReturnType;
       printDocument: () => ReturnType;
     };
   }
@@ -74,7 +73,7 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
       footer: DEFAULT_FOOTER,
       pageNumber: DEFAULT_PAGE_NUMBER,
       pageGap: 40,
-      pageBreakBackground: '#f0f0f0',
+      pageBreakBackground: '#e8e8e8',
       debug: false,
     };
   },
@@ -93,7 +92,7 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
       footer,
       pageNumber,
       pageGap: this.options.pageGap ?? 40,
-      pageBreakBackground: this.options.pageBreakBackground ?? '#f0f0f0',
+      pageBreakBackground: this.options.pageBreakBackground ?? '#e8e8e8',
     });
     injectStyles(styles);
   },
@@ -109,37 +108,36 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
     const footer = resolveFooter(this.options.footer);
     const pageNumber = resolvePageNumber(this.options.pageNumber);
 
-    const contentHeight = getContentHeight(resolvedSize, margins, header, footer);
+    const pageHeightPx = toPx(resolvedSize.height, resolvedSize.unit);
+    const pageWidthPx = toPx(resolvedSize.width, resolvedSize.unit);
 
     return [
       createPaginationPlugin({
-        contentHeight,
-        enabled: true,
-      }),
-      createPageDecorationsPlugin({
-        headerEnabled: header.enabled,
-        footerEnabled: footer.enabled,
-        headerHTML: header.render ? header.render() : '',
-        footerHTML: footer.render ? footer.render() : '',
+        pageHeight: pageHeightPx,
+        pageWidth: pageWidthPx,
+        marginTop: margins.top,
+        marginBottom: margins.bottom,
+        marginLeft: margins.left,
+        marginRight: margins.right,
+        headerHeight: header.enabled ? header.height : 0,
+        footerHeight: footer.enabled ? footer.height : 0,
+        pageGap: this.options.pageGap ?? 40,
         showPageNumber: pageNumber.show,
         pageNumberPosition: pageNumber.position,
         pageNumberAlignment: pageNumber.alignment,
         showPageNumberOnFirst: pageNumber.showOnFirstPage,
         showTotalPages: pageNumber.showTotal,
         pageNumberFormat: pageNumber.format,
+        headerHTML: header.render ? header.render() : '',
+        footerHTML: footer.render ? footer.render() : '',
+        headerEnabled: header.enabled,
+        footerEnabled: footer.enabled,
       }),
     ];
   },
 
   addCommands() {
     return {
-      recomputePagination:
-        () =>
-        ({ view }: { view: any }) => {
-          view.dispatch(view.state.tr);
-          return true;
-        },
-
       printDocument:
         () =>
         () => {
