@@ -2,7 +2,13 @@
 export { PageDocument } from './core/PageDocument';
 export { FolioExtension } from './core/PageExtension';
 export { PageBreak } from './core/PageBreak';
+export { SvgBlock } from './core/SvgBlock';
+export { ChartBlock } from './core/ChartBlock';
+export { MathBlock } from './core/MathBlock';
+export { TableOfContents } from './core/TableOfContents';
 export type { FolioExtensionOptions } from './core/PageExtension';
+export type { ChartConfig } from './core/ChartBlock';
+export type { MathBlockOptions } from './core/MathBlock';
 
 // Layout
 export { PAGE_SIZES, DEFAULT_PAGE_SIZE } from './layout/presets';

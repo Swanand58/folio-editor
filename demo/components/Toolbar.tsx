@@ -169,6 +169,39 @@ export function Toolbar({ editor, pageStatus }: ToolbarProps) {
 
       {sep}
 
+      {/* Phase 3: Content blocks */}
+      <button
+        style={btnStyle(false)}
+        onClick={() => (editor as any).chain().focus().insertTableOfContents().run()}
+        title="Insert Table of Contents"
+      >
+        TOC
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => (editor as any).chain().focus().insertChart({
+          type: 'bar',
+          labels: ['A', 'B', 'C', 'D'],
+          values: [40, 80, 60, 90],
+          title: 'Sample Chart',
+        }).run()}
+        title="Insert Bar Chart"
+      >
+        Chart
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => {
+          const latex = prompt('Enter LaTeX:', 'E = mc^2');
+          if (latex) (editor as any).chain().focus().insertMathBlock({ latex }).run();
+        }}
+        title="Insert Math Equation"
+      >
+        Math
+      </button>
+
+      {sep}
+
       {/* Print */}
       <button
         style={btnStyle(false)}
