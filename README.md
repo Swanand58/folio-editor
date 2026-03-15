@@ -6,8 +6,9 @@ A paginated document editor for React/Next.js. Automatic page breaks, headers/fo
 
 ## Features
 
-- **Content-aware page breaks** — breaks fall between block elements, never mid-paragraph
+- **Content-aware page breaks** — breaks fall between block elements; long paragraphs split at line boundaries
 - **Table splitting** — large tables split at row boundaries across pages with clean closing borders
+- **Paragraph splitting** — long paragraphs break mid-content with continuation rendered on the next page
 - **Forced page breaks** — `PageBreak` node + `editor.commands.insertPageBreak()` (keyboard: `Cmd+Shift+Enter`)
 - **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `scrollToPage()`
 - **Multiple page sizes**: A4, A3, A5, US Letter, Legal, Tabloid
@@ -148,7 +149,7 @@ editor.view.dom.addEventListener('foliopagechange', () => {
 ## Roadmap
 
 - [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
-- [~] Phase 2: Forced page breaks ✓, page state API ✓, table splitting ✓, paragraph splitting
+- [~] Phase 2: Forced page breaks ✓, page state API ✓, table splitting ✓, paragraph splitting ✓
 - [ ] Phase 3: SVG, charts, math equations, table of contents
 - [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 

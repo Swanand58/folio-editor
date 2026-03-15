@@ -11,13 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Forced page breaks** — `PageBreak` node extension with `insertPageBreak` command and `Cmd+Shift+Enter` keyboard shortcut
 - **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `getActivePage()`, `scrollToPage()`
 - **Table splitting across pages** — tables that exceed a page boundary are split at row boundaries instead of being pushed entirely to the next page
+- **Paragraph splitting across pages** — long paragraphs break at line boundaries with continuation displayed on the next page via clone overlays
 - `foliopagechange` custom DOM event fired on the editor element after every repagination
 - Page break CSS for print media (`break-after: page`)
 - White margin masks and closing border line for clean table break visuals
+- Sub-pixel clipping strips for artifact-free paragraph continuation rendering
 
 ### Changed
 - `findBreaks` now detects `data-page-break` elements and forces page boundaries
 - `findBreaks` now walks table rows to find intra-table split points when a table overflows a page
+- `findBreaks` now measures individual lines within paragraphs to find intra-paragraph split points
 - Table cell borders no longer bleed into the page gap area
 
 ## [0.1.0] — 2026-03-15

@@ -119,10 +119,12 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
         const sel = `.ProseMirror > :nth-child(${nthChild}) table tr:nth-child(${nthRow})`;
         css += `${sel} > td,${sel} > th{padding-bottom:${totalPad}px !important}\n`;
       } else {
-        const totalMargin = brk.remainingSpace + gapBridge;
+        const extra = brk.paraLineBreak ? brk.paraLineBreak.originalMargin : 0;
+        const totalMargin = brk.remainingSpace + gapBridge + extra;
         css += `.ProseMirror > :nth-child(${nthChild}){margin-bottom:${totalMargin}px !important}\n`;
       }
     }
+    css += `.folio-para-clone{pointer-events:none;user-select:none}\n`;
     const minHeight = pageCount * opts.pageHeight + (pageCount - 1) * opts.pageGap;
     css += `.ProseMirror{min-height:${minHeight}px !important}\n`;
 
@@ -146,6 +148,9 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
         const breakRow = rows[brk.tableRowIndex];
         const rowBottomAfterInj = offsetRelTo(breakRow, editor) + breakRow.offsetHeight;
         effectiveBottom = rowBottomAfterInj - brk.remainingSpace - gapBridge;
+      } else if (brk.paraLineBreak) {
+        const fullBottom = children[brk.childIndex].offsetTop + children[brk.childIndex].offsetHeight;
+        effectiveBottom = fullBottom - brk.paraLineBreak.overflowHeight;
       } else {
         effectiveBottom = children[brk.childIndex].offsetTop + children[brk.childIndex].offsetHeight;
       }
@@ -286,15 +291,79 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           zIndex: '5',
         }));
       }
-      if (i > 0 && breaks[i - 1].tableRowIndex !== undefined) {
+
+      // White masks and clone overlay for paragraph breaks
+      if (i < pageCount - 1 && breaks[i].paraLineBreak) {
+        const maskTop = gapYPositions[i] - breaks[i].remainingSpace - paddingBottom - 2;
+        const maskHeight = breaks[i].remainingSpace + paddingBottom + 2;
+        overlayContainer.appendChild(makeEl({
+          position: 'absolute',
+          top: `${maskTop}px`,
+          left: `${editorLeft}px`,
+          width: `${editorWidth}px`,
+          height: `${maskHeight}px`,
+          background: '#ffffff',
+          zIndex: '3',
+        }));
+      }
+
+      // Top mask for continuation pages (table or paragraph breaks)
+      if (i > 0 && (breaks[i - 1].tableRowIndex !== undefined || breaks[i - 1].paraLineBreak)) {
+        const maskOverlap = breaks[i - 1].paraLineBreak ? 4 : 0;
         overlayContainer.appendChild(makeEl({
           position: 'absolute',
           top: `${pageY}px`,
           left: `${editorLeft}px`,
           width: `${editorWidth}px`,
-          height: `${paddingTop}px`,
+          height: `${paddingTop + maskOverlap}px`,
           background: '#ffffff',
           zIndex: '3',
+        }));
+      }
+
+      // Clone overlay for paragraph continuation on next page
+      if (i > 0 && breaks[i - 1].paraLineBreak) {
+        const pb = breaks[i - 1].paraLineBreak!;
+        const cloneTop = pageY + paddingTop;
+
+        const wrapper = makeEl({
+          position: 'absolute',
+          top: `${cloneTop}px`,
+          left: `${contentLeft}px`,
+          width: `${pb.paraWidth}px`,
+          height: `${pb.overflowHeight}px`,
+          overflow: 'hidden',
+          zIndex: '6',
+          background: '#ffffff',
+        });
+        wrapper.className = 'folio-para-clone';
+
+        const inner = document.createElement('div');
+        inner.innerHTML = pb.cloneHtml;
+        Object.assign(inner.style, {
+          fontSize: pb.fontSize,
+          lineHeight: pb.lineHeight,
+          fontWeight: pb.fontWeight,
+          fontFamily: pb.fontFamily,
+          color: pb.color,
+          padding: '0',
+          marginLeft: '0',
+          marginRight: '0',
+          marginBottom: '0',
+          marginTop: `-${pb.fittingHeight + 2}px`,
+        });
+        wrapper.appendChild(inner);
+        overlayContainer.appendChild(wrapper);
+
+        // Thin strip to clip any sub-pixel bleeding from the fitting lines
+        overlayContainer.appendChild(makeEl({
+          position: 'absolute',
+          top: `${cloneTop}px`,
+          left: `${contentLeft}px`,
+          width: `${pb.paraWidth}px`,
+          height: '3px',
+          background: '#ffffff',
+          zIndex: '7',
         }));
       }
     }
@@ -377,10 +446,24 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
 // Break-point detection
 // ---------------------------------------------------------------------------
 
+interface ParaLineBreak {
+  fittingHeight: number;
+  overflowHeight: number;
+  originalMargin: number;
+  cloneHtml: string;
+  paraWidth: number;
+  fontSize: string;
+  lineHeight: string;
+  fontWeight: string;
+  fontFamily: string;
+  color: string;
+}
+
 interface BreakPoint {
   childIndex: number;
   remainingSpace: number;
   tableRowIndex?: number;
+  paraLineBreak?: ParaLineBreak;
 }
 
 /**
@@ -406,6 +489,8 @@ function findBreaks(
     let hitPageBreak = -1;
     let tableBreak: BreakPoint | null = null;
 
+    let paraBreak: BreakPoint | null = null;
+
     for (let i = startIdx; i < children.length; i++) {
       if (children[i].hasAttribute('data-page-break')) {
         hitPageBreak = i;
@@ -423,6 +508,9 @@ function findBreaks(
           i === startIdx ? startRowIdx : 0,
           editorEl,
         );
+        if (!tableBreak) {
+          paraBreak = tryParaSplit(children[i], i, pageEnd, editorEl);
+        }
         break;
       }
     }
@@ -457,6 +545,16 @@ function findBreaks(
         if (startIdx >= children.length) break;
         searchFrom = children[startIdx].offsetTop;
       }
+      continue;
+    }
+
+    // Intra-paragraph break (line-level split)
+    if (paraBreak) {
+      result.push(paraBreak);
+      startIdx = paraBreak.childIndex + 1;
+      startRowIdx = 0;
+      if (startIdx >= children.length) break;
+      searchFrom = children[startIdx].offsetTop;
       continue;
     }
 
@@ -511,6 +609,73 @@ function tryTableSplit(
     childIndex,
     tableRowIndex: lastFittingRow,
     remainingSpace: Math.max(0, pageEnd - lastFittingRowBottom),
+  };
+}
+
+function tryParaSplit(
+  child: HTMLElement,
+  childIndex: number,
+  pageEnd: number,
+  editorEl: HTMLElement,
+): BreakPoint | null {
+  if (child.tagName !== 'P') return null;
+
+  const range = document.createRange();
+  range.selectNodeContents(child);
+  const rects = Array.from(range.getClientRects());
+  range.detach();
+
+  if (rects.length < 2) return null;
+
+  const editorBCR = editorEl.getBoundingClientRect();
+
+  const lines: { top: number; bottom: number }[] = [];
+  for (const rect of rects) {
+    const relTop = rect.top - editorBCR.top + editorEl.scrollTop;
+    const relBottom = rect.bottom - editorBCR.top + editorEl.scrollTop;
+    const last = lines[lines.length - 1];
+    if (!last || relTop >= last.bottom - 2) {
+      lines.push({ top: relTop, bottom: relBottom });
+    } else {
+      last.bottom = Math.max(last.bottom, relBottom);
+    }
+  }
+
+  if (lines.length < 2) return null;
+
+  let lastFittingLine = -1;
+  for (let l = 0; l < lines.length; l++) {
+    if (lines[l].bottom <= pageEnd) {
+      lastFittingLine = l;
+    } else {
+      break;
+    }
+  }
+
+  if (lastFittingLine < 0 || lastFittingLine >= lines.length - 1) return null;
+
+  const fittingHeight = lines[lastFittingLine].bottom - lines[0].top;
+  const totalHeight = lines[lines.length - 1].bottom - lines[0].top;
+  const overflowHeight = totalHeight - fittingHeight;
+  const remainingSpace = pageEnd - lines[lastFittingLine].bottom;
+
+  const styles = getComputedStyle(child);
+
+  return {
+    childIndex,
+    remainingSpace: Math.max(0, remainingSpace),
+    paraLineBreak: {
+      fittingHeight,
+      overflowHeight,
+      originalMargin: parseFloat(styles.marginBottom) || 0,
+      cloneHtml: child.innerHTML,
+      paraWidth: child.offsetWidth,
+      fontSize: styles.fontSize,
+      lineHeight: styles.lineHeight,
+      fontWeight: styles.fontWeight,
+      fontFamily: styles.fontFamily,
+      color: styles.color,
+    },
   };
 }
 
