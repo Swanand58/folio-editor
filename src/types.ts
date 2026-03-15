@@ -18,6 +18,7 @@ export interface HeaderFooterConfig {
   enabled: boolean;
   height: number;
   render?: () => string;
+  editable?: boolean;
 }
 
 export interface PageNumberConfig {

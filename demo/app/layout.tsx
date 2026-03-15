@@ -11,8 +11,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body style={{ margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <html lang="en" style={{ margin: 0, padding: 0, width: '100%', overflowX: 'hidden' }}>
+      <body style={{
+        margin: 0,
+        padding: 0,
+        width: '100%',
+        minHeight: '100vh',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}>
         {children}
       </body>
     </html>

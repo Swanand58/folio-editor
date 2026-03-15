@@ -12,7 +12,7 @@ A paginated document editor for React/Next.js. Automatic page breaks, headers/fo
 - **Forced page breaks** — `PageBreak` node + `editor.commands.insertPageBreak()` (keyboard: `Cmd+Shift+Enter`)
 - **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `scrollToPage()`
 - **Multiple page sizes**: A4, A3, A5, US Letter, Legal, Tabloid
-- **Headers and footers** with custom render functions
+- **Editable headers and footers** — click to type; content syncs across all pages (Google Docs style)
 - **Page numbers** — configurable position, alignment, format
 - **Print support** — `Ctrl+P` output matches screen layout
 - **Rich text**: bold, italic, underline, strikethrough, headings H1–H6
@@ -54,6 +54,7 @@ function Editor() {
         header: {
           enabled: true,
           height: 32,
+          editable: true,
           render: () => 'My Document',
         },
         pageNumber: {
@@ -86,12 +87,13 @@ FolioExtension.configure({
   header: {
     enabled: true,
     height: 40,
-    render: () => 'Header text',
+    editable: true,              // click to type (Google Docs style)
+    render: () => 'Header text', // initial content (optional with editable)
   },
   footer: {
-    enabled: false,
+    enabled: true,
     height: 40,
-    render: () => 'Footer text',
+    editable: true,              // shows "Click to add footer" placeholder when empty
   },
   pageNumber: {
     show: true,
@@ -127,11 +129,20 @@ getCurrentPage(editor);  // same as getActivePage(editor, 'cursor')
 scrollToPage(editor, 2);
 ```
 
-The plugin fires a `foliopagechange` DOM event on the editor element after every repagination, so you can listen for updates:
+The plugin fires DOM events on the editor element that you can listen for:
 
 ```ts
+// Page layout changed
 editor.view.dom.addEventListener('foliopagechange', () => {
   console.log('Pages changed:', getPageInfo(editor));
+});
+
+// Header/footer content edited by user
+editor.view.dom.addEventListener('folioheaderchange', (e) => {
+  console.log('Header updated:', (e as CustomEvent).detail.html);
+});
+editor.view.dom.addEventListener('foliofooterchange', (e) => {
+  console.log('Footer updated:', (e as CustomEvent).detail.html);
 });
 ```
 
@@ -149,7 +160,7 @@ editor.view.dom.addEventListener('foliopagechange', () => {
 ## Roadmap
 
 - [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
-- [~] Phase 2: Forced page breaks ✓, page state API ✓, table splitting ✓, paragraph splitting ✓
+- [~] Phase 2: Forced page breaks ✓, page state API ✓, table splitting ✓, paragraph splitting ✓, editable headers/footers ✓
 - [ ] Phase 3: SVG, charts, math equations, table of contents
 - [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 

@@ -45,6 +45,8 @@ export interface PaginationEngineOptions {
   footerHTML: string;
   headerEnabled: boolean;
   footerEnabled: boolean;
+  headerEditable: boolean;
+  footerEditable: boolean;
 }
 
 /**
@@ -67,6 +69,9 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
   let rafId: number | null = null;
   let prevDoc: unknown = null;
   let resizeObserver: ResizeObserver | null = null;
+  let headerContent: string = options.headerHTML;
+  let footerContent: string = options.footerHTML;
+  let isEditingHeaderFooter = false;
 
   function schedule(view: EditorView) {
     if (rafId !== null) cancelAnimationFrame(rafId);
@@ -79,6 +84,8 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
   function repaginate(view: EditorView) {
     if (!overlayContainer || !breakStyleEl) return;
 
+    if (isEditingHeaderFooter) return;
+
     const editor = view.dom as HTMLElement;
     const parent = editor.parentElement;
 
@@ -86,6 +93,7 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
     if (parent) {
       parent.style.position = 'relative';
       parent.style.zIndex = '0';
+      parent.style.overflowX = 'hidden';
     }
 
     if (view.state.doc === prevDoc) return;
@@ -125,6 +133,13 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
       }
     }
     css += `.folio-para-clone{pointer-events:none;user-select:none}\n`;
+    if (opts.headerEditable || opts.footerEditable) {
+      css += `.folio-header-editable,.folio-footer-editable{cursor:text;border-radius:2px;outline:2px solid transparent;transition:outline 0.15s}\n`;
+      css += `.folio-header-editable:hover,.folio-footer-editable:hover{outline:1px dashed #ccc}\n`;
+      css += `.folio-header-editable:focus,.folio-footer-editable:focus{outline:2px dashed #4285f4;color:#333}\n`;
+      css += `.folio-header-editable:empty::before{content:'Click to add header';color:#bbb;font-style:italic}\n`;
+      css += `.folio-footer-editable:empty::before{content:'Click to add footer';color:#bbb;font-style:italic}\n`;
+    }
     const minHeight = pageCount * opts.pageHeight + (pageCount - 1) * opts.pageGap;
     css += `.ProseMirror{min-height:${minHeight}px !important}\n`;
 
@@ -181,7 +196,7 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
       }));
 
       // Header
-      if (opts.headerEnabled && opts.headerHTML) {
+      if (opts.headerEnabled && (opts.headerEditable || opts.headerHTML)) {
         const headerY = pageY + (opts.marginTop - opts.headerHeight) / 2;
         const header = makeEl({
           position: 'absolute',
@@ -197,12 +212,19 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           overflow: 'hidden',
           zIndex: '5',
         });
-        header.innerHTML = opts.headerHTML;
+        if (opts.headerEditable) {
+          header.contentEditable = 'true';
+          header.className = 'folio-header-editable';
+          header.style.pointerEvents = 'auto';
+          header.innerHTML = headerContent;
+        } else {
+          header.innerHTML = opts.headerHTML;
+        }
         overlayContainer.appendChild(header);
       }
 
       // Footer
-      if (opts.footerEnabled && opts.footerHTML) {
+      if (opts.footerEnabled && (opts.footerEditable || opts.footerHTML)) {
         const footerY = pageY + opts.pageHeight - opts.marginBottom
           + (opts.marginBottom - opts.footerHeight) / 2;
         const footer = makeEl({
@@ -219,7 +241,14 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           overflow: 'hidden',
           zIndex: '5',
         });
-        footer.innerHTML = opts.footerHTML;
+        if (opts.footerEditable) {
+          footer.contentEditable = 'true';
+          footer.className = 'folio-footer-editable';
+          footer.style.pointerEvents = 'auto';
+          footer.innerHTML = footerContent;
+        } else {
+          footer.innerHTML = opts.footerHTML;
+        }
         overlayContainer.appendChild(footer);
       }
 
@@ -413,6 +442,66 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
       breakStyleEl = document.createElement('style');
       breakStyleEl.setAttribute('data-folio-breaks', '');
       document.head.appendChild(breakStyleEl);
+
+      // Editable header/footer event delegation
+      if (options.headerEditable || options.footerEditable) {
+        const isHfEditable = (el: HTMLElement) =>
+          el.classList.contains('folio-header-editable') || el.classList.contains('folio-footer-editable');
+
+        overlayContainer.addEventListener('focusin', (e) => {
+          if (isHfEditable(e.target as HTMLElement)) {
+            isEditingHeaderFooter = true;
+          }
+        });
+
+        overlayContainer.addEventListener('focusout', (e) => {
+          const target = e.target as HTMLElement;
+          if (!isHfEditable(target)) return;
+
+          // Defer so focusin on a sibling header/footer fires first
+          setTimeout(() => {
+            const active = document.activeElement as HTMLElement | null;
+            if (active && isHfEditable(active)) return;
+
+            isEditingHeaderFooter = false;
+            if (target.classList.contains('folio-header-editable')) {
+              headerContent = target.innerHTML;
+            } else {
+              footerContent = target.innerHTML;
+            }
+            prevDoc = null;
+            schedule(view);
+          }, 0);
+        });
+
+        overlayContainer.addEventListener('input', (e) => {
+          const target = e.target as HTMLElement;
+          const isHeader = target.classList.contains('folio-header-editable');
+          const isFooter = target.classList.contains('folio-footer-editable');
+          if (!isHeader && !isFooter) return;
+
+          const html = target.innerHTML;
+          const cls = isHeader ? 'folio-header-editable' : 'folio-footer-editable';
+
+          if (isHeader) headerContent = html;
+          else footerContent = html;
+
+          overlayContainer!.querySelectorAll(`.${cls}`).forEach(el => {
+            if (el !== target) el.innerHTML = html;
+          });
+
+          view.dom.dispatchEvent(new CustomEvent(
+            isHeader ? 'folioheaderchange' : 'foliofooterchange',
+            { bubbles: true, detail: { html } },
+          ));
+        });
+
+        overlayContainer.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && isHfEditable(e.target as HTMLElement)) {
+            (e.target as HTMLElement).blur();
+          }
+        });
+      }
 
       // Re-paginate when the editor element resizes (text reflows)
       resizeObserver = new ResizeObserver(() => {

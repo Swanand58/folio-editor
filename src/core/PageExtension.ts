@@ -40,6 +40,7 @@ function resolveHeader(input: DeepPartial<HeaderFooterConfig> | undefined): Head
     enabled: input?.enabled ?? DEFAULT_HEADER.enabled,
     height: input?.height ?? DEFAULT_HEADER.height,
     render: input?.render ?? DEFAULT_HEADER.render,
+    editable: input?.editable ?? false,
   };
 }
 
@@ -48,6 +49,7 @@ function resolveFooter(input: DeepPartial<HeaderFooterConfig> | undefined): Head
     enabled: input?.enabled ?? DEFAULT_FOOTER.enabled,
     height: input?.height ?? DEFAULT_FOOTER.height,
     render: input?.render ?? DEFAULT_FOOTER.render,
+    editable: input?.editable ?? false,
   };
 }
 
@@ -133,6 +135,8 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
         pageBreakBackground: this.options.pageBreakBackground ?? '#e8e8e8',
         headerEnabled: header.enabled,
         footerEnabled: footer.enabled,
+        headerEditable: header.editable ?? false,
+        footerEditable: footer.editable ?? false,
       }),
     ];
   },

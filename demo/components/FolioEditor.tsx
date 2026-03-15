@@ -27,7 +27,7 @@ const SAMPLE_CONTENT = `
   <tr><td>Lists</td><td>Done</td><td>Ordered and unordered</td></tr>
   <tr><td>Tables</td><td>Done</td><td>With header rows and resize</td></tr>
   <tr><td>Page numbers</td><td>Done</td><td>Configurable position and format</td></tr>
-  <tr><td>Headers/Footers</td><td>Done</td><td>Static content on every page</td></tr>
+  <tr><td>Headers/Footers</td><td>Done</td><td>Editable — click to type, syncs across pages</td></tr>
   <tr><td>Print support</td><td>Done</td><td>Ctrl+P for print-ready output</td></tr>
   <tr><td>Copy/Paste</td><td>Done</td><td>Native clipboard support</td></tr>
   <tr><td>Forced breaks</td><td>Done</td><td>Cmd+Shift+Enter inserts page break</td></tr>
@@ -103,11 +103,13 @@ export function FolioEditor() {
         header: {
           enabled: true,
           height: 32,
-          render: () => '<span style="color:#999;font-size:11px">Folio Editor — Document</span>',
+          editable: true,
+          render: () => 'Folio Editor — Document',
         },
         footer: {
-          enabled: false,
+          enabled: true,
           height: 32,
+          editable: true,
         },
         pageNumber: {
           show: true,
@@ -153,7 +155,7 @@ export function FolioEditor() {
   return (
     <div>
       <Toolbar editor={editor} pageStatus={pageStatus} />
-      <div style={{ background: '#e8e8e8', minHeight: 'calc(100vh - 100px)', padding: '40px 0' }}>
+      <div style={{ background: '#e8e8e8', minHeight: 'calc(100vh - 100px)', padding: '40px 0', width: '100%' }}>
         <EditorContent editor={editor} />
       </div>
     </div>

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `getActivePage()`, `scrollToPage()`
 - **Table splitting across pages** — tables that exceed a page boundary are split at row boundaries instead of being pushed entirely to the next page
 - **Paragraph splitting across pages** — long paragraphs break at line boundaries with continuation displayed on the next page via clone overlays
+- **Editable headers and footers** — click to type directly in header/footer areas; content syncs across all pages in real time. `folioheaderchange` and `foliofooterchange` DOM events fire on edit. Placeholder text shown when empty.
 - `foliopagechange` custom DOM event fired on the editor element after every repagination
 - Page break CSS for print media (`break-after: page`)
 - White margin masks and closing border line for clean table break visuals
