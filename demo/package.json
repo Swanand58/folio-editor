@@ -1,0 +1,35 @@
+{
+  "name": "folio-editor-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@tiptap/core": "^2.11.0",
+    "@tiptap/extension-bold": "^2.11.0",
+    "@tiptap/extension-bullet-list": "^2.11.0",
+    "@tiptap/extension-heading": "^2.11.0",
+    "@tiptap/extension-italic": "^2.11.0",
+    "@tiptap/extension-list-item": "^2.11.0",
+    "@tiptap/extension-ordered-list": "^2.11.0",
+    "@tiptap/extension-paragraph": "^2.11.0",
+    "@tiptap/extension-strike": "^2.11.0",
+    "@tiptap/extension-text": "^2.11.0",
+    "@tiptap/extension-underline": "^2.11.0",
+    "@tiptap/pm": "^2.11.0",
+    "@tiptap/react": "^2.11.0",
+    "@tiptap/starter-kit": "^2.11.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
