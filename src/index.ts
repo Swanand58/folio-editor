@@ -5,6 +5,16 @@ export type { PageNodeOptions } from './core/PageNode';
 export { FolioExtension } from './core/PageExtension';
 export type { FolioExtensionOptions } from './core/PageExtension';
 export { PageKeymap } from './core/PageKeymap';
+export { createPageDecorationsPlugin, pageDecorationsKey } from './core/PageDecorationsPlugin';
+export type { PageDecorationsOptions } from './core/PageDecorationsPlugin';
+
+// Pagination — table splitting
+export {
+  isTableNode,
+  splitTableAtRow,
+  findTableSplitRow,
+  measureTableRowHeights,
+} from './pagination/table-splitter';
 
 // Layout
 export { PAGE_SIZES, DEFAULT_PAGE_SIZE } from './layout/presets';

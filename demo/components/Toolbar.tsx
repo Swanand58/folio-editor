@@ -20,6 +20,10 @@ export function Toolbar({ editor }: ToolbarProps) {
     minWidth: '32px',
   });
 
+  const sep = (
+    <div style={{ width: '1px', background: '#d0d0d0', margin: '0 4px' }} />
+  );
+
   return (
     <div style={{
       padding: '8px 24px',
@@ -32,24 +36,25 @@ export function Toolbar({ editor }: ToolbarProps) {
       top: '49px',
       zIndex: 99,
     }}>
+      {/* Text formatting */}
       <button
         style={btnStyle(editor.isActive('bold'))}
         onClick={() => editor.chain().focus().toggleBold().run()}
-        title="Bold"
+        title="Bold (Ctrl+B)"
       >
         <strong>B</strong>
       </button>
       <button
         style={btnStyle(editor.isActive('italic'))}
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        title="Italic"
+        title="Italic (Ctrl+I)"
       >
         <em>I</em>
       </button>
       <button
         style={btnStyle(editor.isActive('underline'))}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        title="Underline"
+        title="Underline (Ctrl+U)"
       >
         <span style={{ textDecoration: 'underline' }}>U</span>
       </button>
@@ -61,8 +66,9 @@ export function Toolbar({ editor }: ToolbarProps) {
         <s>S</s>
       </button>
 
-      <div style={{ width: '1px', background: '#d0d0d0', margin: '0 4px' }} />
+      {sep}
 
+      {/* Headings */}
       {([1, 2, 3, 4] as const).map((level) => (
         <button
           key={level}
@@ -74,8 +80,9 @@ export function Toolbar({ editor }: ToolbarProps) {
         </button>
       ))}
 
-      <div style={{ width: '1px', background: '#d0d0d0', margin: '0 4px' }} />
+      {sep}
 
+      {/* Lists */}
       <button
         style={btnStyle(editor.isActive('bulletList'))}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -91,12 +98,70 @@ export function Toolbar({ editor }: ToolbarProps) {
         1. List
       </button>
 
-      <div style={{ width: '1px', background: '#d0d0d0', margin: '0 4px' }} />
+      {sep}
 
+      {/* Table */}
+      <button
+        style={btnStyle(false)}
+        onClick={() =>
+          editor
+            .chain()
+            .focus()
+            .insertTable({ rows: 4, cols: 3, withHeaderRow: true })
+            .run()
+        }
+        title="Insert Table"
+      >
+        Table
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => editor.chain().focus().addColumnAfter().run()}
+        disabled={!editor.can().addColumnAfter()}
+        title="Add Column"
+      >
+        +Col
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => editor.chain().focus().addRowAfter().run()}
+        disabled={!editor.can().addRowAfter()}
+        title="Add Row"
+      >
+        +Row
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => editor.chain().focus().deleteColumn().run()}
+        disabled={!editor.can().deleteColumn()}
+        title="Delete Column"
+      >
+        -Col
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => editor.chain().focus().deleteRow().run()}
+        disabled={!editor.can().deleteRow()}
+        title="Delete Row"
+      >
+        -Row
+      </button>
+      <button
+        style={btnStyle(false)}
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        disabled={!editor.can().deleteTable()}
+        title="Delete Table"
+      >
+        Del Table
+      </button>
+
+      {sep}
+
+      {/* Print */}
       <button
         style={btnStyle(false)}
         onClick={() => window.print()}
-        title="Print"
+        title="Print (Ctrl+P)"
       >
         Print
       </button>

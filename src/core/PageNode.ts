@@ -10,6 +10,16 @@ export interface PageNodeOptions {
   marginRight: number;
   headerHeight: number;
   footerHeight: number;
+  headerEnabled: boolean;
+  footerEnabled: boolean;
+  headerHTML: string;
+  footerHTML: string;
+  showPageNumber: boolean;
+  pageNumberPosition: 'top' | 'bottom';
+  pageNumberAlignment: 'left' | 'center' | 'right';
+  showPageNumberOnFirst: boolean;
+  showTotalPages: boolean;
+  pageNumberFormat?: (current: number, total: number) => string;
 }
 
 export const PageNode = Node.create<PageNodeOptions>({
@@ -30,6 +40,16 @@ export const PageNode = Node.create<PageNodeOptions>({
       marginRight: 72,
       headerHeight: 0,
       footerHeight: 0,
+      headerEnabled: false,
+      footerEnabled: false,
+      headerHTML: '',
+      footerHTML: '',
+      showPageNumber: true,
+      pageNumberPosition: 'bottom' as const,
+      pageNumberAlignment: 'center' as const,
+      showPageNumberOnFirst: false,
+      showTotalPages: true,
+      pageNumberFormat: undefined,
     };
   },
 
@@ -37,8 +57,8 @@ export const PageNode = Node.create<PageNodeOptions>({
     return {
       pageIndex: {
         default: 0,
-        parseHTML: (el) => parseInt(el.getAttribute('data-page-index') || '0', 10),
-        renderHTML: (attrs) => ({ 'data-page-index': attrs.pageIndex }),
+        parseHTML: (el: HTMLElement) => parseInt(el.getAttribute('data-page-index') || '0', 10),
+        renderHTML: (attrs: Record<string, any>) => ({ 'data-page-index': attrs.pageIndex }),
       },
     };
   },
@@ -57,10 +77,12 @@ export const PageNode = Node.create<PageNodeOptions>({
       marginRight,
       headerHeight,
       footerHeight,
+      headerEnabled,
+      footerEnabled,
     } = this.options;
 
-    const contentTop = marginTop + headerHeight;
-    const contentBottom = marginBottom + footerHeight;
+    const contentTop = marginTop + (headerEnabled ? headerHeight : 0);
+    const contentBottom = marginBottom + (footerEnabled ? footerHeight : 0);
 
     return [
       'div',

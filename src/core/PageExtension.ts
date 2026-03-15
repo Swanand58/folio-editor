@@ -4,6 +4,7 @@ import { PAGE_SIZES, DEFAULT_PAGE_SIZE } from '../layout/presets';
 import { DEFAULT_MARGINS, getContentHeight } from '../layout/margins';
 import { DEFAULT_HEADER, DEFAULT_FOOTER, DEFAULT_PAGE_NUMBER } from '../layout/header-footer';
 import { createPaginationPlugin } from '../pagination/PaginationPlugin';
+import { createPageDecorationsPlugin } from './PageDecorationsPlugin';
 import { injectStyles, removeStyles } from '../styles/injector';
 import { generateStyles } from '../styles/base';
 
@@ -106,6 +107,7 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
     const margins = resolveMargins(this.options.margins);
     const header = resolveHeader(this.options.header);
     const footer = resolveFooter(this.options.footer);
+    const pageNumber = resolvePageNumber(this.options.pageNumber);
 
     const contentHeight = getContentHeight(resolvedSize, margins, header, footer);
 
@@ -113,6 +115,18 @@ export const FolioExtension = Extension.create<FolioExtensionOptions>({
       createPaginationPlugin({
         contentHeight,
         enabled: true,
+      }),
+      createPageDecorationsPlugin({
+        headerEnabled: header.enabled,
+        footerEnabled: footer.enabled,
+        headerHTML: header.render ? header.render() : '',
+        footerHTML: footer.render ? footer.render() : '',
+        showPageNumber: pageNumber.show,
+        pageNumberPosition: pageNumber.position,
+        pageNumberAlignment: pageNumber.alignment,
+        showPageNumberOnFirst: pageNumber.showOnFirstPage,
+        showTotalPages: pageNumber.showTotal,
+        pageNumberFormat: pageNumber.format,
       }),
     ];
   },
