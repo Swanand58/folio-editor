@@ -2,7 +2,7 @@
 
 A paginated document editor for React/Next.js. Automatic page breaks, headers/footers, page numbers, print-ready output. Built on [TipTap](https://tiptap.dev).
 
-> **Status**: Early development — Phase 2 in progress
+> **Status**: Phase 2 complete — Phase 3 planned
 
 ## Features
 
@@ -93,7 +93,7 @@ FolioExtension.configure({
   footer: {
     enabled: true,
     height: 40,
-    editable: true,              // shows "Click to add footer" placeholder when empty
+    editable: true,              // click to type (Google Docs style)
   },
   pageNumber: {
     show: true,
@@ -160,7 +160,7 @@ editor.view.dom.addEventListener('foliofooterchange', (e) => {
 ## Roadmap
 
 - [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
-- [~] Phase 2: Forced page breaks ✓, page state API ✓, table splitting ✓, paragraph splitting ✓, editable headers/footers ✓
+- [x] Phase 2: Forced page breaks, page state API, table splitting, paragraph splitting, editable headers/footers
 - [ ] Phase 3: SVG, charts, math equations, table of contents
 - [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 

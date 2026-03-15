@@ -1,7 +1,7 @@
 {
   "name": "folio-editor",
-  "version": "0.1.0",
-  "description": "A paginated document editor for React/Next.js — automatic page breaks, table splitting, print-ready output. Built on TipTap.",
+  "version": "0.2.0",
+  "description": "A paginated document editor for React/Next.js — page breaks, table/paragraph splitting, editable headers/footers, print-ready output. Built on TipTap.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-03-15
+
 ### Added
 - **Forced page breaks** — `PageBreak` node extension with `insertPageBreak` command and `Cmd+Shift+Enter` keyboard shortcut
 - **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `getActivePage()`, `scrollToPage()`
 - **Table splitting across pages** — tables that exceed a page boundary are split at row boundaries instead of being pushed entirely to the next page
 - **Paragraph splitting across pages** — long paragraphs break at line boundaries with continuation displayed on the next page via clone overlays
-- **Editable headers and footers** — click to type directly in header/footer areas; content syncs across all pages in real time. `folioheaderchange` and `foliofooterchange` DOM events fire on edit. Placeholder text shown when empty.
+- **Editable headers and footers** — click to type directly in header/footer areas; content syncs across all pages in real time. `folioheaderchange` and `foliofooterchange` DOM events fire on edit.
 - `foliopagechange` custom DOM event fired on the editor element after every repagination
 - Page break CSS for print media (`break-after: page`)
 - White margin masks and closing border line for clean table break visuals
@@ -47,5 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Header/footer defaults: `DEFAULT_HEADER`, `DEFAULT_FOOTER`, `DEFAULT_PAGE_NUMBER`
 - Full TypeScript type exports
 
-[Unreleased]: https://github.com/Swanand58/folio-editor/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Swanand58/folio-editor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Swanand58/folio-editor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Swanand58/folio-editor/releases/tag/v0.1.0
