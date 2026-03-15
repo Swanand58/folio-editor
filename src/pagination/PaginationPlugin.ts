@@ -73,6 +73,9 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
   let footerContent: string = options.footerHTML;
   let isEditingHeaderFooter = false;
   let focusoutTimerId: ReturnType<typeof setTimeout> | null = null;
+  let printHeaderEl: HTMLDivElement | null = null;
+  let printFooterEl: HTMLDivElement | null = null;
+  let printStyleEl: HTMLStyleElement | null = null;
 
   function schedule(view: EditorView) {
     if (rafId !== null) cancelAnimationFrame(rafId);
@@ -444,6 +447,31 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
       breakStyleEl.setAttribute('data-folio-breaks', '');
       document.head.appendChild(breakStyleEl);
 
+      // Print-only header/footer elements (position: fixed repeats on every printed page)
+      if (options.headerEnabled) {
+        printHeaderEl = document.createElement('div');
+        printHeaderEl.className = 'folio-print-header';
+        printHeaderEl.innerHTML = headerContent;
+        document.body.appendChild(printHeaderEl);
+      }
+      if (options.footerEnabled) {
+        printFooterEl = document.createElement('div');
+        printFooterEl.className = 'folio-print-footer';
+        printFooterEl.innerHTML = footerContent;
+        document.body.appendChild(printFooterEl);
+      }
+      // Print-only page number style using @page margin boxes
+      if (options.showPageNumber) {
+        printStyleEl = document.createElement('style');
+        printStyleEl.setAttribute('data-folio-print', '');
+        const align = options.pageNumberAlignment === 'left' ? 'left'
+          : options.pageNumberAlignment === 'right' ? 'right' : 'center';
+        const pos = options.pageNumberPosition === 'top' ? 'top' : 'bottom';
+        const slot = `@${pos}-${align}`;
+        printStyleEl.textContent = `@media print { @page { ${slot} { content: counter(page) " / " counter(pages); font-size: 11px; color: #999; } } }`;
+        document.head.appendChild(printStyleEl);
+      }
+
       // Editable header/footer event delegation
       if (options.headerEditable || options.footerEditable) {
         const isHfEditable = (el: HTMLElement) =>
@@ -484,8 +512,13 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           const html = target.innerHTML;
           const cls = isHeader ? 'folio-header-editable' : 'folio-footer-editable';
 
-          if (isHeader) headerContent = html;
-          else footerContent = html;
+          if (isHeader) {
+            headerContent = html;
+            if (printHeaderEl) printHeaderEl.innerHTML = html;
+          } else {
+            footerContent = html;
+            if (printFooterEl) printFooterEl.innerHTML = html;
+          }
 
           overlayContainer!.querySelectorAll(`.${cls}`).forEach(el => {
             if (el !== target) el.innerHTML = html;
@@ -522,9 +555,15 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           overlayContainer?.remove();
           pageBackgrounds?.remove();
           breakStyleEl?.remove();
+          printHeaderEl?.remove();
+          printFooterEl?.remove();
+          printStyleEl?.remove();
           overlayContainer = null;
           pageBackgrounds = null;
           breakStyleEl = null;
+          printHeaderEl = null;
+          printFooterEl = null;
+          printStyleEl = null;
           prevDoc = null;
           resizeObserver = null;
           focusoutTimerId = null;

@@ -29,6 +29,7 @@ export type { PageInfoData, PageInfoEntry } from './api/page-info';
 
 // Print
 export { printDocument, generatePrintHTML } from './print/handler';
+export type { PrintHTMLOptions } from './print/handler';
 
 // Utils
 export { toPx, fromPx, convert } from './utils/units';

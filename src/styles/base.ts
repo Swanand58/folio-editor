@@ -42,6 +42,11 @@ export function generateStyles(config: StyleConfig): string {
       pointer-events: none;
     }
 
+    .folio-print-header,
+    .folio-print-footer {
+      display: none;
+    }
+
     @media print {
       html, body {
         margin: 0 !important;
@@ -51,10 +56,34 @@ export function generateStyles(config: StyleConfig): string {
       .ProseMirror {
         background: white !important;
         width: 100% !important;
+        padding-top: ${config.margins.top + (config.header.enabled ? config.header.height + 8 : 0)}px !important;
+        padding-bottom: ${config.margins.bottom + (config.footer.enabled ? config.footer.height + 8 : 0)}px !important;
       }
       .folio-overlays,
       .folio-page-backgrounds {
         display: none !important;
+      }
+      .folio-print-header {
+        display: block !important;
+        position: fixed;
+        top: ${fromPx(config.margins.top * 0.25, 'mm')}mm;
+        left: ${fromPx(config.margins.left, 'mm')}mm;
+        right: ${fromPx(config.margins.right, 'mm')}mm;
+        text-align: center;
+        font-size: 11px;
+        color: #999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      .folio-print-footer {
+        display: block !important;
+        position: fixed;
+        bottom: ${fromPx(config.margins.bottom * 0.25, 'mm')}mm;
+        left: ${fromPx(config.margins.left, 'mm')}mm;
+        right: ${fromPx(config.margins.right, 'mm')}mm;
+        text-align: center;
+        font-size: 11px;
+        color: #999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       .ProseMirror [data-page-break] {
         border: none;

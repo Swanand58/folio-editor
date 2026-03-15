@@ -42,7 +42,11 @@ npm install @tiptap/core @tiptap/pm @tiptap/react @tiptap/starter-kit
 
 ## Quick Start
 
+> **Next.js users:** This component must run on the client. Add `'use client'` at the top of your file, or use `next/dynamic` with `{ ssr: false }`. See [Next.js / SSR](#nextjs--ssr) below.
+
 ```tsx
+'use client'; // Required for Next.js App Router
+
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { PageDocument, FolioExtension, PageBreak } from 'folio-editor';

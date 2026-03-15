@@ -19,6 +19,13 @@ const SVG_ALLOWED_TAGS = new Set([
 
 const SVG_DANGEROUS_ATTRS = /^on/i;
 const SVG_DANGEROUS_VALUES = /javascript:|data:/i;
+const SVG_EXTERNAL_HREF_TAGS = new Set(['image', 'use']);
+const SVG_HREF_ATTRS = new Set(['href', 'xlink:href']);
+
+function isExternalUrl(value: string): boolean {
+  const trimmed = value.trim();
+  return /^(https?:|\/\/)/i.test(trimmed);
+}
 
 function sanitizeSvg(raw: string): string {
   const parser = new DOMParser();
@@ -30,12 +37,17 @@ function sanitizeSvg(raw: string): string {
   if (svg.tagName.toLowerCase() !== 'svg') return '';
 
   function clean(el: Element): void {
-    if (!SVG_ALLOWED_TAGS.has(el.tagName.toLowerCase())) {
+    const tag = el.tagName.toLowerCase();
+    if (!SVG_ALLOWED_TAGS.has(tag)) {
       el.remove();
       return;
     }
     for (const attr of Array.from(el.attributes)) {
       if (SVG_DANGEROUS_ATTRS.test(attr.name) || SVG_DANGEROUS_VALUES.test(attr.value)) {
+        el.removeAttribute(attr.name);
+        continue;
+      }
+      if (SVG_EXTERNAL_HREF_TAGS.has(tag) && SVG_HREF_ATTRS.has(attr.name) && isExternalUrl(attr.value)) {
         el.removeAttribute(attr.name);
       }
     }

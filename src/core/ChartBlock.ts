@@ -21,12 +21,13 @@ declare module '@tiptap/core' {
   }
 }
 
-function esc(s: string): string {
+/** @internal Escape HTML special characters for safe SVG text content. */
+export function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/** Validate a CSS color value — only allow hex, rgb(), hsl(), and named colors. */
-function safeColor(c: string): string {
+/** @internal Validate a CSS color value — only allow hex, rgb(), hsl(), and named colors. */
+export function safeColor(c: string): string {
   if (/^#[0-9a-fA-F]{3,8}$/.test(c)) return c;
   if (/^(rgb|hsl)a?\(\s*[\d.,\s%]+\)$/.test(c)) return c;
   if (/^[a-zA-Z]{1,30}$/.test(c)) return c;
