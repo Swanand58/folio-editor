@@ -2,11 +2,13 @@
 
 A paginated document editor for React/Next.js. Automatic page breaks, headers/footers, page numbers, print-ready output. Built on [TipTap](https://tiptap.dev).
 
-> **Status**: Early development — Phase 1 complete
+> **Status**: Early development — Phase 2 in progress
 
 ## Features
 
 - **Content-aware page breaks** — breaks fall between block elements, never mid-paragraph
+- **Forced page breaks** — `PageBreak` node + `editor.commands.insertPageBreak()` (keyboard: `Cmd+Shift+Enter`)
+- **Page state API** — `getPageInfo()`, `getCurrentPage()`, `getVisiblePage()`, `scrollToPage()`
 - **Multiple page sizes**: A4, A3, A5, US Letter, Legal, Tabloid
 - **Headers and footers** with custom render functions
 - **Page numbers** — configurable position, alignment, format
@@ -38,7 +40,7 @@ npm install folio-editor
 ```tsx
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { PageDocument, FolioExtension } from 'folio-editor';
+import { PageDocument, FolioExtension, PageBreak } from 'folio-editor';
 
 function Editor() {
   const editor = useEditor({
@@ -58,6 +60,7 @@ function Editor() {
           alignment: 'center',
         },
       }),
+      PageBreak, // adds insertPageBreak command + Cmd+Shift+Enter
       StarterKit.configure({ document: false }),
     ],
     content: '<p>Start typing...</p>',
@@ -101,6 +104,35 @@ FolioExtension.configure({
 });
 ```
 
+## Page State API
+
+```ts
+import { getPageInfo, getActivePage, scrollToPage } from 'folio-editor';
+
+// Total pages and positions
+const info = getPageInfo(editor);
+// → { pageCount: 3, pages: [{ index: 0, top: 0, height: 1123 }, ...] }
+
+// Which page is active — choose your mode
+getActivePage(editor, 'viewport');  // page in the viewport (default)
+getActivePage(editor, 'cursor');    // page containing the text cursor
+
+// Convenience aliases
+getVisiblePage(editor);  // same as getActivePage(editor, 'viewport')
+getCurrentPage(editor);  // same as getActivePage(editor, 'cursor')
+
+// Scroll to a specific page (1-indexed)
+scrollToPage(editor, 2);
+```
+
+The plugin fires a `foliopagechange` DOM event on the editor element after every repagination, so you can listen for updates:
+
+```ts
+editor.view.dom.addEventListener('foliopagechange', () => {
+  console.log('Pages changed:', getPageInfo(editor));
+});
+```
+
 ## Page Sizes
 
 | Name    | Dimensions         |
@@ -115,7 +147,7 @@ FolioExtension.configure({
 ## Roadmap
 
 - [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
-- [ ] Phase 2: Table splitting across pages, image support
+- [~] Phase 2: Forced page breaks, page state API, table splitting, paragraph splitting
 - [ ] Phase 3: SVG, charts, math equations, table of contents
 - [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 

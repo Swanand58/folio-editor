@@ -1,6 +1,7 @@
 // Core extensions
 export { PageDocument } from './core/PageDocument';
 export { FolioExtension } from './core/PageExtension';
+export { PageBreak } from './core/PageBreak';
 export type { FolioExtensionOptions } from './core/PageExtension';
 
 // Layout
@@ -15,6 +16,10 @@ export {
 
 // Pagination
 export { paginationPluginKey } from './pagination/PaginationPlugin';
+
+// Page State API
+export { getPageInfo, getCurrentPage, getVisiblePage, getActivePage, scrollToPage } from './api/page-info';
+export type { PageInfoData, PageInfoEntry } from './api/page-info';
 
 // Print
 export { printDocument, generatePrintHTML } from './print/handler';

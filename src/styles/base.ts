@@ -56,6 +56,11 @@ export function generateStyles(config: StyleConfig): string {
       .folio-page-backgrounds {
         display: none !important;
       }
+      .ProseMirror [data-page-break] {
+        border: none;
+        margin: 0;
+        break-after: page;
+      }
       @page {
         size: ${config.pageSize.width}${config.pageSize.unit} ${config.pageSize.height}${config.pageSize.unit};
         margin: ${config.margins.top}px ${config.margins.right}px ${config.margins.bottom}px ${config.margins.left}px;
@@ -77,6 +82,18 @@ export function generateStyles(config: StyleConfig): string {
     .ProseMirror table { border-collapse: collapse; width: 100%; margin: 12px 0; }
     .ProseMirror th, .ProseMirror td { border: 1px solid #d0d0d0; padding: 8px 12px; text-align: left; position: relative; }
     .ProseMirror th { background: #f5f5f5; font-weight: 600; }
+
+    .ProseMirror [data-page-break] {
+      height: 0;
+      margin: 12px 0;
+      border: none;
+      border-top: 2px dashed #ccc;
+      cursor: default;
+    }
+    .ProseMirror [data-page-break].ProseMirror-selectednode {
+      outline: 2px solid #68CEF8;
+      outline-offset: 2px;
+    }
 
     .ProseMirror img { max-width: 100%; height: auto; }
     .ProseMirror blockquote { border-left: 3px solid #d0d0d0; padding-left: 16px; margin: 12px 0; color: #666; }

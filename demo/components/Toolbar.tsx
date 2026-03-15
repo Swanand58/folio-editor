@@ -4,9 +4,10 @@ import type { Editor } from '@tiptap/core';
 
 interface ToolbarProps {
   editor: Editor | null;
+  pageStatus?: string;
 }
 
-export function Toolbar({ editor }: ToolbarProps) {
+export function Toolbar({ editor, pageStatus }: ToolbarProps) {
   if (!editor) return null;
 
   const btnStyle = (isActive: boolean): React.CSSProperties => ({
@@ -157,6 +158,17 @@ export function Toolbar({ editor }: ToolbarProps) {
 
       {sep}
 
+      {/* Page Break */}
+      <button
+        style={btnStyle(false)}
+        onClick={() => (editor as any).chain().focus().insertPageBreak().run()}
+        title="Insert Page Break (Cmd+Shift+Enter)"
+      >
+        ⏎ Break
+      </button>
+
+      {sep}
+
       {/* Print */}
       <button
         style={btnStyle(false)}
@@ -165,6 +177,18 @@ export function Toolbar({ editor }: ToolbarProps) {
       >
         Print
       </button>
+
+      {pageStatus && (
+        <span style={{
+          marginLeft: 'auto',
+          fontSize: '12px',
+          color: '#666',
+          padding: '6px 10px',
+          whiteSpace: 'nowrap',
+        }}>
+          {pageStatus}
+        </span>
+      )}
     </div>
   );
 }

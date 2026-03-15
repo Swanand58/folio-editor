@@ -3,6 +3,27 @@ import type { EditorView } from '@tiptap/pm/view';
 
 export const paginationPluginKey = new PluginKey('folioPagination');
 
+// ---------------------------------------------------------------------------
+// Page info cache — exposed via the public API in src/api/page-info.ts
+// ---------------------------------------------------------------------------
+
+export interface PageInfoEntry {
+  index: number;
+  top: number;
+  height: number;
+}
+
+export interface PageInfoData {
+  pageCount: number;
+  pages: PageInfoEntry[];
+}
+
+const PAGE_INFO_KEY = '__folioPageInfo';
+
+export function getPageInfoFromCache(editorDom: HTMLElement): PageInfoData | null {
+  return (editorDom as any)[PAGE_INFO_KEY] ?? null;
+}
+
 export interface PaginationEngineOptions {
   pageHeight: number;
   pageWidth: number;
@@ -232,6 +253,13 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
     const totalHeight = pageStartYs[pageCount - 1] + opts.pageHeight;
     overlayContainer.style.height = `${totalHeight}px`;
     if (pageBackgrounds) pageBackgrounds.style.height = `${totalHeight}px`;
+
+    (editor as any)[PAGE_INFO_KEY] = {
+      pageCount,
+      pages: pageStartYs.map((y, i) => ({ index: i, top: y, height: opts.pageHeight })),
+    } as PageInfoData;
+
+    editor.dispatchEvent(new CustomEvent('foliopagechange', { bubbles: true }));
   }
 
   return new Plugin({
@@ -323,8 +351,15 @@ function findBreaks(
     const pageEnd = searchFrom + contentAreaHeight;
     let lastFittingIdx = -1;
     let lastFittingBottom = searchFrom;
+    let hitPageBreak = -1;
 
     for (let i = startIdx; i < children.length; i++) {
+      // Forced page break — stop the current page here
+      if (children[i].hasAttribute('data-page-break')) {
+        hitPageBreak = i;
+        break;
+      }
+
       const bottom = children[i].offsetTop + children[i].offsetHeight;
       if (bottom <= pageEnd) {
         lastFittingIdx = i;
@@ -334,7 +369,21 @@ function findBreaks(
       }
     }
 
-    // If no child fits, force the first one onto this page (oversized element)
+    if (hitPageBreak >= 0) {
+      if (lastFittingIdx >= startIdx) {
+        result.push({
+          childIndex: lastFittingIdx,
+          remainingSpace: Math.max(0, pageEnd - lastFittingBottom),
+        });
+      }
+      // Skip past the page break element for the next page
+      startIdx = hitPageBreak + 1;
+      if (startIdx >= children.length) break;
+      searchFrom = children[startIdx].offsetTop;
+      continue;
+    }
+
+    // --- Normal overflow break (unchanged) ---
     if (lastFittingIdx === -1 && startIdx < children.length) {
       lastFittingIdx = startIdx;
       lastFittingBottom = children[startIdx].offsetTop + children[startIdx].offsetHeight;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -7,7 +8,7 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import { PageDocument, FolioExtension } from 'folio-editor';
+import { PageDocument, FolioExtension, PageBreak, getPageInfo, getVisiblePage } from 'folio-editor';
 import { Toolbar } from './Toolbar';
 
 const SAMPLE_CONTENT = `
@@ -67,6 +68,15 @@ const SAMPLE_CONTENT = `
 `;
 
 export function FolioEditor() {
+  const [pageStatus, setPageStatus] = useState('Page 1 of 1');
+
+  const refreshPageStatus = useCallback((ed: any) => {
+    const info = getPageInfo(ed);
+    if (!info) return;
+    const current = getVisiblePage(ed);
+    setPageStatus(`Page ${current} of ${info.pageCount}`);
+  }, []);
+
   const editor = useEditor({
     extensions: [
       PageDocument,
@@ -92,6 +102,7 @@ export function FolioEditor() {
         pageGap: 40,
         pageBreakBackground: '#e8e8e8',
       }),
+      PageBreak,
       StarterKit.configure({ document: false }),
       Underline,
       Table.configure({ resizable: true }),
@@ -102,11 +113,29 @@ export function FolioEditor() {
     content: SAMPLE_CONTENT,
     autofocus: true,
     immediatelyRender: false,
+    onSelectionUpdate: ({ editor: ed }) => refreshPageStatus(ed),
+    onUpdate: ({ editor: ed }) => setTimeout(() => refreshPageStatus(ed), 50),
   });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const dom = editor.view.dom;
+    const onPageChange = () => refreshPageStatus(editor);
+    dom.addEventListener('foliopagechange', onPageChange);
+
+    const onScroll = () => refreshPageStatus(editor);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      dom.removeEventListener('foliopagechange', onPageChange);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [editor, refreshPageStatus]);
 
   return (
     <div>
-      <Toolbar editor={editor} />
+      <Toolbar editor={editor} pageStatus={pageStatus} />
       <div style={{ background: '#e8e8e8', minHeight: 'calc(100vh - 100px)', padding: '40px 0' }}>
         <EditorContent editor={editor} />
       </div>
