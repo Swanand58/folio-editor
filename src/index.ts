@@ -33,13 +33,18 @@ export { printDocument, generatePrintHTML } from './print/handler';
 // Utils
 export { toPx, fromPx, convert } from './utils/units';
 
+// DOM Event names — use these instead of raw strings
+export const FOLIO_PAGE_CHANGE = 'foliopagechange' as const;
+export const FOLIO_HEADER_CHANGE = 'folioheaderchange' as const;
+export const FOLIO_FOOTER_CHANGE = 'foliofooterchange' as const;
+
 // Types
 export type {
   Unit,
+  PageSizeName,
   Margin,
   PageSize,
   HeaderFooterConfig,
   PageNumberConfig,
   FolioConfig,
-  DeepPartial,
 } from './types';

@@ -12,7 +12,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const MathBlock = Node.create<MathBlockOptions>({
+export const MathBlock = Node.create<MathBlockOptions, Record<string, never>>({
   name: 'mathBlock',
   group: 'block',
   atom: true,

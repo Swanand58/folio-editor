@@ -8,7 +8,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const PageBreak = Node.create({
+export const PageBreak = Node.create<Record<string, never>, Record<string, never>>({
   name: 'pageBreak',
   group: 'block',
   atom: true,

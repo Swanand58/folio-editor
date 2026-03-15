@@ -29,7 +29,7 @@ function extractHeadings(editor: Editor): TocEntry[] {
   return entries;
 }
 
-export const TableOfContents = Node.create({
+export const TableOfContents = Node.create<Record<string, never>, Record<string, never>>({
   name: 'tableOfContents',
   group: 'block',
   atom: true,

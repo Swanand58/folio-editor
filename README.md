@@ -2,7 +2,7 @@
 
 A paginated document editor for React/Next.js. Automatic page breaks, headers/footers, page numbers, print-ready output. Built on [TipTap](https://tiptap.dev).
 
-> **Status**: Phase 2 complete — Phase 3 planned
+> **Status**: Phase 3 complete — Phase 4 planned
 
 ## Features
 
@@ -14,11 +14,16 @@ A paginated document editor for React/Next.js. Automatic page breaks, headers/fo
 - **Multiple page sizes**: A4, A3, A5, US Letter, Legal, Tabloid
 - **Editable headers and footers** — click to type; content syncs across all pages (Google Docs style)
 - **Page numbers** — configurable position, alignment, format
+- **Charts** — bar, line, and pie charts rendered as pure SVG (no dependencies)
+- **Math equations** — LaTeX notation with pluggable renderer (KaTeX, MathJax, or built-in fallback)
+- **SVG graphics** — embed raw SVG diagrams directly in the document
+- **Table of contents** — auto-generated from headings, click to navigate
 - **Print support** — `Ctrl+P` output matches screen layout
 - **Rich text**: bold, italic, underline, strikethrough, headings H1–H6
 - **Lists**: ordered and unordered
 - **Tables** with column resize
 - **Zero interference** — no ProseMirror transactions, no clipboard interception, native undo/redo
+- **Fully typed** — zero `any` in public API, JSDoc on every interface
 
 ## How It Works
 
@@ -63,7 +68,7 @@ function Editor() {
           alignment: 'center',
         },
       }),
-      PageBreak, // adds insertPageBreak command + Cmd+Shift+Enter
+      PageBreak,
       StarterKit.configure({ document: false }),
     ],
     content: '<p>Start typing...</p>',
@@ -71,6 +76,53 @@ function Editor() {
 
   return <EditorContent editor={editor} />;
 }
+```
+
+## Content Block Extensions
+
+All block extensions are selectable (click to select, Delete to remove) and work with the pagination engine.
+
+```tsx
+import {
+  SvgBlock,        // embed raw SVG
+  ChartBlock,      // bar / line / pie charts
+  MathBlock,       // LaTeX equations
+  TableOfContents, // auto-generated heading list
+} from 'folio-editor';
+
+// Add to your extensions array:
+const extensions = [
+  // ...core extensions...
+  SvgBlock,
+  ChartBlock,
+  MathBlock,
+  TableOfContents,
+];
+
+// Insert via commands:
+editor.commands.insertChart({
+  type: 'bar',
+  labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+  values: [100, 200, 150, 300],
+  title: 'Revenue',
+});
+
+editor.commands.insertMathBlock({ latex: 'E = mc^2' });
+editor.commands.insertSvg({ src: '<svg>...</svg>' });
+editor.commands.insertTableOfContents();
+```
+
+### MathBlock with KaTeX
+
+Pass a custom renderer for publication-quality math:
+
+```tsx
+import katex from 'katex';
+
+MathBlock.configure({
+  renderMath: (latex, displayMode) =>
+    katex.renderToString(latex, { displayMode, throwOnError: false }),
+});
 ```
 
 ## Configuration
@@ -93,7 +145,7 @@ FolioExtension.configure({
   footer: {
     enabled: true,
     height: 40,
-    editable: true,              // click to type (Google Docs style)
+    editable: true,
   },
   pageNumber: {
     show: true,
@@ -129,19 +181,26 @@ getCurrentPage(editor);  // same as getActivePage(editor, 'cursor')
 scrollToPage(editor, 2);
 ```
 
-The plugin fires DOM events on the editor element that you can listen for:
+### DOM Events
+
+Use the exported constants instead of raw strings:
 
 ```ts
-// Page layout changed
-editor.view.dom.addEventListener('foliopagechange', () => {
+import {
+  FOLIO_PAGE_CHANGE,
+  FOLIO_HEADER_CHANGE,
+  FOLIO_FOOTER_CHANGE,
+} from 'folio-editor';
+
+editor.view.dom.addEventListener(FOLIO_PAGE_CHANGE, () => {
   console.log('Pages changed:', getPageInfo(editor));
 });
 
-// Header/footer content edited by user
-editor.view.dom.addEventListener('folioheaderchange', (e) => {
+editor.view.dom.addEventListener(FOLIO_HEADER_CHANGE, (e) => {
   console.log('Header updated:', (e as CustomEvent).detail.html);
 });
-editor.view.dom.addEventListener('foliofooterchange', (e) => {
+
+editor.view.dom.addEventListener(FOLIO_FOOTER_CHANGE, (e) => {
   console.log('Footer updated:', (e as CustomEvent).detail.html);
 });
 ```
@@ -161,7 +220,7 @@ editor.view.dom.addEventListener('foliofooterchange', (e) => {
 
 - [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
 - [x] Phase 2: Forced page breaks, page state API, table splitting, paragraph splitting, editable headers/footers
-- [ ] Phase 3: SVG, charts, math equations, table of contents
+- [x] Phase 3: SVG graphics, charts, math equations, table of contents
 - [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 
 ## License

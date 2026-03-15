@@ -1,9 +1,5 @@
 import { Node } from '@tiptap/core';
 
-export interface SvgBlockOptions {
-  HTMLAttributes: Record<string, any>;
-}
-
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     svgBlock: {
@@ -12,15 +8,11 @@ declare module '@tiptap/core' {
   }
 }
 
-export const SvgBlock = Node.create<SvgBlockOptions>({
+export const SvgBlock = Node.create<Record<string, never>, Record<string, never>>({
   name: 'svgBlock',
   group: 'block',
   atom: true,
   draggable: true,
-
-  addOptions() {
-    return { HTMLAttributes: {} };
-  },
 
   addAttributes() {
     return {

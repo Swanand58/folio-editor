@@ -6,7 +6,7 @@ import { Node } from '@tiptap/core';
  * This avoids fighting ProseMirror's editing model with structural
  * page nodes that need constant redistribution.
  */
-export const PageDocument = Node.create({
+export const PageDocument = Node.create<Record<string, never>, Record<string, never>>({
   name: 'doc',
   topNode: true,
   content: 'block+',

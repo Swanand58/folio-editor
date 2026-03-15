@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-03-15
+
+### Added
+- **SVG graphics** — `SvgBlock` extension for embedding raw SVG diagrams
+- **Charts** — `ChartBlock` extension with bar, line, and pie chart types rendered as pure SVG
+- **Math equations** — `MathBlock` extension with LaTeX notation and pluggable renderer (KaTeX, MathJax, or built-in fallback)
+- **Table of contents** — `TableOfContents` extension, auto-generated from headings with click-to-navigate
+- Click-to-select and Delete support for all atom nodes (charts, math, SVG, TOC)
+- Toolbar buttons for inserting charts, math equations, and table of contents in the demo
+
+### Changed
+- **Zero `any` in public API** — all TipTap generics, plugin keys, and internal caches use proper types
+- Replaced DOM property cache (`__folioPageInfo`) with `WeakMap` for type safety
+- `PluginKey` typed as `PluginKey<null>` instead of `PluginKey<any>`
+- `toPx()`, `fromPx()`, `convert()` now accept `Unit` type instead of `string`
+- Removed unused `SvgBlockOptions.HTMLAttributes` interface
+- Added `PageSizeName` union type (`'A3' | 'A4' | 'A5' | 'LETTER' | 'LEGAL' | 'TABLOID'`) for autocomplete
+- Added `sideEffects: false` to `package.json` for better tree-shaking
+- Added `peerDependenciesMeta` — `@tiptap/react`, `react`, `react-dom` marked optional
+- Exported `FOLIO_PAGE_CHANGE`, `FOLIO_HEADER_CHANGE`, `FOLIO_FOOTER_CHANGE` event name constants
+- JSDoc comments on all public types (Margin, PageSize, FolioConfig, etc.)
+- `DeepPartial` marked `@internal` and removed from public exports
+
 ## [0.2.0] — 2026-03-15
 
 ### Added
@@ -49,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Header/footer defaults: `DEFAULT_HEADER`, `DEFAULT_FOOTER`, `DEFAULT_PAGE_NUMBER`
 - Full TypeScript type exports
 
-[Unreleased]: https://github.com/Swanand58/folio-editor/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Swanand58/folio-editor/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Swanand58/folio-editor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Swanand58/folio-editor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Swanand58/folio-editor/releases/tag/v0.1.0

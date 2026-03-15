@@ -64,7 +64,7 @@ function resolvePageNumber(input: DeepPartial<PageNumberConfig> | undefined): Pa
   };
 }
 
-export const FolioExtension = Extension.create<FolioExtensionOptions>({
+export const FolioExtension = Extension.create<FolioExtensionOptions, Record<string, never>>({
   name: 'folioExtension',
 
   addOptions() {

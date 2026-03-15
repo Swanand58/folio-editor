@@ -1,7 +1,7 @@
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
 
-export const paginationPluginKey = new PluginKey('folioPagination');
+export const paginationPluginKey = new PluginKey<null>('folioPagination');
 
 // ---------------------------------------------------------------------------
 // Page info cache — exposed via the public API in src/api/page-info.ts
@@ -18,10 +18,10 @@ export interface PageInfoData {
   pages: PageInfoEntry[];
 }
 
-const PAGE_INFO_KEY = '__folioPageInfo';
+const pageInfoCache = new WeakMap<HTMLElement, PageInfoData>();
 
 export function getPageInfoFromCache(editorDom: HTMLElement): PageInfoData | null {
-  return (editorDom as any)[PAGE_INFO_KEY] ?? null;
+  return pageInfoCache.get(editorDom) ?? null;
 }
 
 export interface PaginationEngineOptions {
@@ -401,10 +401,10 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
     overlayContainer.style.height = `${totalHeight}px`;
     if (pageBackgrounds) pageBackgrounds.style.height = `${totalHeight}px`;
 
-    (editor as any)[PAGE_INFO_KEY] = {
+    pageInfoCache.set(editor, {
       pageCount,
       pages: pageStartYs.map((y, i) => ({ index: i, top: y, height: opts.pageHeight })),
-    } as PageInfoData;
+    });
 
     editor.dispatchEvent(new CustomEvent('foliopagechange', { bubbles: true }));
   }

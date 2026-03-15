@@ -139,7 +139,7 @@ function renderChartSvg(config: ChartConfig): string {
   }
 }
 
-export const ChartBlock = Node.create({
+export const ChartBlock = Node.create<Record<string, never>, Record<string, never>>({
   name: 'chartBlock',
   group: 'block',
   atom: true,

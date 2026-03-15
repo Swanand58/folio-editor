@@ -1,6 +1,8 @@
+import type { Unit } from '../types';
+
 const DPI = 96;
 
-const PX_PER: Record<string, number> = {
+const PX_PER: Record<Unit, number> = {
   px: 1,
   in: DPI,
   cm: DPI / 2.54,
@@ -8,22 +10,19 @@ const PX_PER: Record<string, number> = {
   pt: DPI / 72,
 };
 
-export function toPx(value: number, unit: string): number {
+/** Convert a value in the given unit to pixels. */
+export function toPx(value: number, unit: Unit): number {
   const factor = PX_PER[unit];
-  if (!factor) {
-    throw new Error(`Unknown unit: ${unit}`);
-  }
   return Math.round(value * factor * 100) / 100;
 }
 
-export function fromPx(px: number, unit: string): number {
+/** Convert a pixel value to the given unit. */
+export function fromPx(px: number, unit: Unit): number {
   const factor = PX_PER[unit];
-  if (!factor) {
-    throw new Error(`Unknown unit: ${unit}`);
-  }
   return Math.round((px / factor) * 100) / 100;
 }
 
-export function convert(value: number, from: string, to: string): number {
+/** Convert a value from one unit to another. */
+export function convert(value: number, from: Unit, to: Unit): number {
   return fromPx(toPx(value, from), to);
 }
