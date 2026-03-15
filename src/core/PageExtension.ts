@@ -1,5 +1,5 @@
 import { Extension } from '@tiptap/core';
-import type { FolioConfig, DeepPartial, Margin, PageSize, HeaderFooterConfig, PageNumberConfig } from '../types';
+import type { FolioConfig, DeepPartial, Margin, PageSize, PageSizeName, HeaderFooterConfig, PageNumberConfig } from '../types';
 import { PAGE_SIZES, DEFAULT_PAGE_SIZE } from '../layout/presets';
 import { DEFAULT_MARGINS } from '../layout/margins';
 import { DEFAULT_HEADER, DEFAULT_FOOTER, DEFAULT_PAGE_NUMBER } from '../layout/header-footer';
@@ -8,7 +8,7 @@ import { injectStyles, removeStyles } from '../styles/injector';
 import { generateStyles } from '../styles/base';
 import { toPx } from '../utils/units';
 
-export interface FolioExtensionOptions extends DeepPartial<FolioConfig> {}
+export type FolioExtensionOptions = DeepPartial<FolioConfig>;
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -21,7 +21,7 @@ declare module '@tiptap/core' {
 function resolvePageSize(input: PageSize | string | undefined): PageSize {
   if (!input) return DEFAULT_PAGE_SIZE;
   if (typeof input === 'string') {
-    return PAGE_SIZES[input.toUpperCase()] || DEFAULT_PAGE_SIZE;
+    return PAGE_SIZES[input.toUpperCase() as PageSizeName] || DEFAULT_PAGE_SIZE;
   }
   return input;
 }
@@ -64,7 +64,11 @@ function resolvePageNumber(input: DeepPartial<PageNumberConfig> | undefined): Pa
   };
 }
 
-export const FolioExtension = Extension.create<FolioExtensionOptions, Record<string, never>>({
+interface FolioStorage {
+  styleId: string | null;
+}
+
+export const FolioExtension = Extension.create<FolioExtensionOptions, FolioStorage>({
   name: 'folioExtension',
 
   addOptions() {
@@ -78,6 +82,10 @@ export const FolioExtension = Extension.create<FolioExtensionOptions, Record<str
       pageBreakBackground: '#e8e8e8',
       debug: false,
     };
+  },
+
+  addStorage() {
+    return { styleId: null };
   },
 
   onCreate() {
@@ -96,11 +104,14 @@ export const FolioExtension = Extension.create<FolioExtensionOptions, Record<str
       pageGap: this.options.pageGap ?? 40,
       pageBreakBackground: this.options.pageBreakBackground ?? '#e8e8e8',
     });
-    injectStyles(styles);
+    this.storage.styleId = injectStyles(styles);
   },
 
   onDestroy() {
-    removeStyles();
+    if (this.storage.styleId) {
+      removeStyles(this.storage.styleId);
+      this.storage.styleId = null;
+    }
   },
 
   addProseMirrorPlugins() {

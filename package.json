@@ -14,7 +14,10 @@
   },
   "sideEffects": false,
   "files": [
-    "dist",
+    "dist/*.js",
+    "dist/*.mjs",
+    "dist/*.d.ts",
+    "dist/*.d.mts",
     "README.md",
     "LICENSE"
   ],
@@ -22,6 +25,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
@@ -56,9 +61,15 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "@tiptap/react": { "optional": true },
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "@tiptap/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@tiptap/core": "^2.11.0",
@@ -85,6 +96,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.57.0",
+    "vitest": "^4.1.0"
   }
 }

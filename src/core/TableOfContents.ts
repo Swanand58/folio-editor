@@ -117,7 +117,11 @@ export const TableOfContents = Node.create<Record<string, never>, Record<string,
 
       renderToc();
 
-      const onUpdate = () => setTimeout(renderToc, 100);
+      let debounceId: ReturnType<typeof setTimeout> | null = null;
+      const onUpdate = () => {
+        if (debounceId !== null) clearTimeout(debounceId);
+        debounceId = setTimeout(() => { debounceId = null; renderToc(); }, 150);
+      };
       editor.on('update', onUpdate);
 
       return {
@@ -125,6 +129,7 @@ export const TableOfContents = Node.create<Record<string, never>, Record<string,
         selectNode() { dom.style.outline = '2px solid #68CEF8'; dom.style.outlineOffset = '2px'; },
         deselectNode() { dom.style.outline = ''; dom.style.outlineOffset = ''; },
         destroy() {
+          if (debounceId !== null) clearTimeout(debounceId);
           editor.off('update', onUpdate);
         },
       };

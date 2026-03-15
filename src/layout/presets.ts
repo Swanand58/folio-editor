@@ -1,6 +1,6 @@
-import type { PageSize } from '../types';
+import type { PageSize, PageSizeName } from '../types';
 
-export const PAGE_SIZES: Record<string, PageSize> = {
+export const PAGE_SIZES: Record<PageSizeName, PageSize> = {
   A3: {
     name: 'A3',
     width: 297,

@@ -80,6 +80,27 @@ function Editor() {
 }
 ```
 
+### Next.js / SSR
+
+folio-editor uses browser APIs (DOM, `ResizeObserver`, `requestAnimationFrame`) and **cannot run on the server**. In Next.js App Router, make sure the component that renders the editor is a client component:
+
+```tsx
+// app/editor/page.tsx
+'use client';
+
+import { Editor } from '../components/Editor'; // your editor component
+export default function Page() {
+  return <Editor />;
+}
+```
+
+Or use `next/dynamic` with SSR disabled:
+
+```tsx
+import dynamic from 'next/dynamic';
+const Editor = dynamic(() => import('../components/Editor'), { ssr: false });
+```
+
 ### Why `document: false`?
 
 `PageDocument` provides a custom document node (`content: 'block+'`) that the pagination engine relies on. StarterKit ships its own `Document` node — if both are registered, TipTap throws a duplicate node error. Passing `document: false` to StarterKit disables its version.
@@ -258,6 +279,8 @@ editor.view.dom.addEventListener(FOLIO_FOOTER_CHANGE, (e) => {
 | `printDocument()` | Trigger browser print dialog |
 | `generatePrintHTML(el, css)` | Generate standalone print HTML |
 | `formatPageNumber(config, cur, total)` | Format a page number string |
+| `getContentHeight(pageSize, margins, header, footer)` | Usable content height in px |
+| `getContentWidth(pageSize, margins)` | Usable content width in px |
 | `toPx(value, unit)` | Convert value to pixels |
 | `fromPx(px, unit)` | Convert pixels to a unit |
 | `convert(value, from, to)` | Convert between units |
@@ -269,7 +292,8 @@ editor.view.dom.addEventListener(FOLIO_FOOTER_CHANGE, (e) => {
 | `FOLIO_PAGE_CHANGE` | `'foliopagechange'` | Fired after every repagination |
 | `FOLIO_HEADER_CHANGE` | `'folioheaderchange'` | Fired when header is edited |
 | `FOLIO_FOOTER_CHANGE` | `'foliofooterchange'` | Fired when footer is edited |
-| `PAGE_SIZES` | `Record<string, PageSize>` | All preset page sizes |
+| `paginationPluginKey` | `PluginKey` | ProseMirror plugin key (advanced) |
+| `PAGE_SIZES` | `Record<PageSizeName, PageSize>` | All preset page sizes |
 | `DEFAULT_PAGE_SIZE` | `PageSize` | A4 |
 | `DEFAULT_MARGINS` | `Margin` | 72px on all sides |
 | `DEFAULT_HEADER` | `HeaderFooterConfig` | Disabled, 40px height |

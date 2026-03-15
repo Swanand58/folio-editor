@@ -72,6 +72,7 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
   let headerContent: string = options.headerHTML;
   let footerContent: string = options.footerHTML;
   let isEditingHeaderFooter = false;
+  let focusoutTimerId: ReturnType<typeof setTimeout> | null = null;
 
   function schedule(view: EditorView) {
     if (rafId !== null) cancelAnimationFrame(rafId);
@@ -458,8 +459,8 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           const target = e.target as HTMLElement;
           if (!isHfEditable(target)) return;
 
-          // Defer so focusin on a sibling header/footer fires first
-          setTimeout(() => {
+          focusoutTimerId = setTimeout(() => {
+            focusoutTimerId = null;
             const active = document.activeElement as HTMLElement | null;
             if (active && isHfEditable(active)) return;
 
@@ -516,6 +517,7 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
         update() { schedule(view); },
         destroy() {
           if (rafId !== null) cancelAnimationFrame(rafId);
+          if (focusoutTimerId !== null) clearTimeout(focusoutTimerId);
           resizeObserver?.disconnect();
           overlayContainer?.remove();
           pageBackgrounds?.remove();
@@ -525,6 +527,7 @@ export function createPaginationPlugin(options: PaginationEngineOptions): Plugin
           breakStyleEl = null;
           prevDoc = null;
           resizeObserver = null;
+          focusoutTimerId = null;
         },
       };
     },

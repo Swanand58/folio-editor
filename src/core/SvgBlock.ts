@@ -8,6 +8,46 @@ declare module '@tiptap/core' {
   }
 }
 
+const SVG_ALLOWED_TAGS = new Set([
+  'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline',
+  'polygon', 'text', 'tspan', 'textpath', 'defs', 'use', 'symbol',
+  'clippath', 'mask', 'pattern', 'lineargradient', 'radialgradient',
+  'stop', 'filter', 'fegaussianblur', 'feoffset', 'feblend',
+  'fecolormatrix', 'fecomposite', 'feflood', 'femerge', 'femergenode',
+  'femorphology', 'marker', 'image', 'title', 'desc', 'metadata',
+]);
+
+const SVG_DANGEROUS_ATTRS = /^on/i;
+const SVG_DANGEROUS_VALUES = /javascript:|data:/i;
+
+function sanitizeSvg(raw: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(raw, 'image/svg+xml');
+  const errors = doc.querySelector('parsererror');
+  if (errors) return '';
+
+  const svg = doc.documentElement;
+  if (svg.tagName.toLowerCase() !== 'svg') return '';
+
+  function clean(el: Element): void {
+    if (!SVG_ALLOWED_TAGS.has(el.tagName.toLowerCase())) {
+      el.remove();
+      return;
+    }
+    for (const attr of Array.from(el.attributes)) {
+      if (SVG_DANGEROUS_ATTRS.test(attr.name) || SVG_DANGEROUS_VALUES.test(attr.value)) {
+        el.removeAttribute(attr.name);
+      }
+    }
+    for (const child of Array.from(el.children)) {
+      clean(child);
+    }
+  }
+
+  clean(svg);
+  return svg.outerHTML;
+}
+
 export const SvgBlock = Node.create<Record<string, never>, Record<string, never>>({
   name: 'svgBlock',
   group: 'block',
@@ -57,7 +97,14 @@ export const SvgBlock = Node.create<Record<string, never>, Record<string, never>
         borderRadius: '4px',
         transition: 'outline 0.15s',
       });
-      dom.innerHTML = node.attrs.src;
+
+      const safe = sanitizeSvg(node.attrs.src);
+      if (safe) {
+        dom.innerHTML = safe;
+      } else {
+        dom.textContent = 'Invalid or unsafe SVG';
+        Object.assign(dom.style, { color: '#999', fontStyle: 'italic', padding: '20px' });
+      }
 
       const svg = dom.querySelector('svg');
       if (svg) {

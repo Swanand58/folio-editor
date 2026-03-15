@@ -22,7 +22,15 @@ declare module '@tiptap/core' {
 }
 
 function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/** Validate a CSS color value — only allow hex, rgb(), hsl(), and named colors. */
+function safeColor(c: string): string {
+  if (/^#[0-9a-fA-F]{3,8}$/.test(c)) return c;
+  if (/^(rgb|hsl)a?\(\s*[\d.,\s%]+\)$/.test(c)) return c;
+  if (/^[a-zA-Z]{1,30}$/.test(c)) return c;
+  return '#999';
 }
 
 function renderBarChart(c: ChartConfig): string {
@@ -50,7 +58,7 @@ function renderBarChart(c: ChartConfig): string {
     const x = pad.l + i * (cw / labels.length) + bg / 2;
     const bh = (values[i] / max) * ch;
     const y = pad.t + ch - bh;
-    const col = colors[i % colors.length];
+    const col = safeColor(colors[i % colors.length]);
     s += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${col}" rx="2"/>`;
     s += `<text x="${x + bw / 2}" y="${pad.t + ch + 20}" text-anchor="middle" font-size="10" fill="#666">${esc(labels[i])}</text>`;
     s += `<text x="${x + bw / 2}" y="${y - 5}" text-anchor="middle" font-size="10" fill="#666">${values[i]}</text>`;
@@ -65,7 +73,7 @@ function renderLineChart(c: ChartConfig): string {
   const pad = { t: title ? 40 : 20, r: 20, b: 50, l: 50 };
   const cw = w - pad.l - pad.r, ch = h - pad.t - pad.b;
   const max = Math.max(...values, 1);
-  const col = colors[0];
+  const col = safeColor(colors[0]);
   const step = cw / Math.max(labels.length - 1, 1);
 
   let s = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,sans-serif">`;
@@ -110,12 +118,13 @@ function renderPieChart(c: ChartConfig): string {
 
   let angle = -Math.PI / 2;
   for (let i = 0; i < values.length; i++) {
+    if (values[i] <= 0) { continue; }
     const slice = (values[i] / total) * 2 * Math.PI;
     const end = angle + slice;
     const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
     const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
     const large = slice > Math.PI ? 1 : 0;
-    s += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z" fill="${colors[i % colors.length]}" stroke="#fff" stroke-width="2"/>`;
+    s += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z" fill="${safeColor(colors[i % colors.length])}" stroke="#fff" stroke-width="2"/>`;
     angle = end;
   }
 
@@ -123,7 +132,7 @@ function renderPieChart(c: ChartConfig): string {
   for (let i = 0; i < labels.length; i++) {
     const y = (title ? 60 : 40) + i * 22;
     const pct = Math.round((values[i] / total) * 100);
-    s += `<rect x="${lx}" y="${y}" width="12" height="12" rx="2" fill="${colors[i % colors.length]}"/>`;
+    s += `<rect x="${lx}" y="${y}" width="12" height="12" rx="2" fill="${safeColor(colors[i % colors.length])}"/>`;
     s += `<text x="${lx + 18}" y="${y + 10}" font-size="11" fill="#333">${esc(labels[i])} (${pct}%)</text>`;
   }
 

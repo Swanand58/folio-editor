@@ -1,5 +1,5 @@
 import type { PageSize, Margin, HeaderFooterConfig, PageNumberConfig } from '../types';
-import { toPx } from '../utils/units';
+import { toPx, fromPx } from '../utils/units';
 
 interface StyleConfig {
   pageSize: PageSize;
@@ -63,7 +63,7 @@ export function generateStyles(config: StyleConfig): string {
       }
       @page {
         size: ${config.pageSize.width}${config.pageSize.unit} ${config.pageSize.height}${config.pageSize.unit};
-        margin: ${config.margins.top}px ${config.margins.right}px ${config.margins.bottom}px ${config.margins.left}px;
+        margin: ${fromPx(config.margins.top, 'mm')}mm ${fromPx(config.margins.right, 'mm')}mm ${fromPx(config.margins.bottom, 'mm')}mm ${fromPx(config.margins.left, 'mm')}mm;
       }
     }
 

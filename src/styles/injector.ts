@@ -1,16 +1,15 @@
-const STYLE_ID = 'folio-editor-styles';
+let counter = 0;
 
-export function injectStyles(css: string): void {
-  removeStyles();
+export function injectStyles(css: string): string {
+  const id = `folio-editor-styles-${counter++}`;
   const style = document.createElement('style');
-  style.id = STYLE_ID;
+  style.id = id;
   style.textContent = css;
   document.head.appendChild(style);
+  return id;
 }
 
-export function removeStyles(): void {
-  const existing = document.getElementById(STYLE_ID);
-  if (existing) {
-    existing.remove();
-  }
+export function removeStyles(id: string): void {
+  const el = document.getElementById(id);
+  if (el) el.remove();
 }
