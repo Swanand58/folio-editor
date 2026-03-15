@@ -36,6 +36,8 @@ test.describe('Editor Basics', () => {
     await page.keyboard.type('normal ');
 
     await page.click('button[title*="Bold"]');
+    await editor.click();
+    await page.keyboard.press('End');
     await page.keyboard.type('bolded');
 
     const boldText = page.locator('.tiptap strong:has-text("bolded")');
@@ -49,6 +51,8 @@ test.describe('Editor Basics', () => {
     await page.keyboard.press('Enter');
 
     await page.click('button[title*="Italic"]');
+    await editor.click();
+    await page.keyboard.press('End');
     await page.keyboard.type('italicized');
 
     const italicText = page.locator('.tiptap em:has-text("italicized")');
@@ -62,6 +66,8 @@ test.describe('Editor Basics', () => {
     await page.keyboard.press('Enter');
 
     await page.click('button[title*="Underline"]');
+    await editor.click();
+    await page.keyboard.press('End');
     await page.keyboard.type('e2eunderlinetest');
 
     const uText = page.locator('.tiptap u:has-text("e2eunderlinetest")');
