@@ -31,7 +31,4 @@ export type {
   PageNumberConfig,
   FolioConfig,
   DeepPartial,
-  PageMeta,
-  PaginationState,
-  SplitResult,
 } from './types';

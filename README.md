@@ -1,19 +1,31 @@
 # folio-editor
 
-A paginated document editor for React/Next.js. Automatic page breaks, table splitting, print-ready output. Built on [TipTap](https://tiptap.dev).
+A paginated document editor for React/Next.js. Automatic page breaks, headers/footers, page numbers, print-ready output. Built on [TipTap](https://tiptap.dev).
 
-> **Status**: Early development — Phase 1 (MVP)
+> **Status**: Early development — Phase 1 complete
 
 ## Features
 
-- Automatic page break detection and content redistribution
-- Multiple page sizes: A4, A3, A5, US Letter, Legal, Tabloid
-- Static headers and footers with page numbering
-- Print-first: screen output matches `Ctrl+P` exactly
-- Rich text: bold, italic, underline, strikethrough, headings (H1–H6)
-- Lists, blockquotes, code blocks
-- Table support with cross-page row splitting (Phase 2)
-- Built as a TipTap extension — works with any TipTap setup
+- **Content-aware page breaks** — breaks fall between block elements, never mid-paragraph
+- **Multiple page sizes**: A4, A3, A5, US Letter, Legal, Tabloid
+- **Headers and footers** with custom render functions
+- **Page numbers** — configurable position, alignment, format
+- **Print support** — `Ctrl+P` output matches screen layout
+- **Rich text**: bold, italic, underline, strikethrough, headings H1–H6
+- **Lists**: ordered and unordered
+- **Tables** with column resize
+- **Zero interference** — no ProseMirror transactions, no clipboard interception, native undo/redo
+
+## How It Works
+
+Content flows in a single continuous ProseMirror document. The pagination plugin:
+
+1. Measures all top-level block elements in the editor
+2. Finds the last block that fully fits within each page's content area
+3. Injects CSS `margin-bottom` on that block (via a `<style>` in `<head>`, invisible to ProseMirror's MutationObserver)
+4. Renders per-page card backgrounds, gap bars, headers, footers, and page numbers as DOM overlays
+
+This means scrolling, copy/paste, selection, and undo/redo all work natively.
 
 ## Install
 
@@ -26,24 +38,26 @@ npm install folio-editor
 ```tsx
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import {
-  PageDocument,
-  PageNode,
-  FolioExtension,
-  PageKeymap,
-} from 'folio-editor';
+import { PageDocument, FolioExtension } from 'folio-editor';
 
 function Editor() {
   const editor = useEditor({
     extensions: [
       PageDocument,
-      PageNode,
       FolioExtension.configure({
         pageSize: 'A4',
         pageGap: 40,
+        header: {
+          enabled: true,
+          height: 32,
+          render: () => 'My Document',
+        },
+        pageNumber: {
+          show: true,
+          position: 'bottom',
+          alignment: 'center',
+        },
       }),
-      PageKeymap,
-      // TipTap extensions (without Document — PageDocument replaces it)
       StarterKit.configure({ document: false }),
     ],
     content: '<p>Start typing...</p>',
@@ -67,20 +81,23 @@ FolioExtension.configure({
   header: {
     enabled: true,
     height: 40,
+    render: () => 'Header text',
   },
   footer: {
-    enabled: true,
+    enabled: false,
     height: 40,
+    render: () => 'Footer text',
   },
   pageNumber: {
     show: true,
-    showTotal: true,
+    showTotal: true,        // "1 / 3" vs "1"
     showOnFirstPage: false,
-    position: 'bottom',
-    alignment: 'center',
+    position: 'bottom',     // 'top' | 'bottom'
+    alignment: 'center',    // 'left' | 'center' | 'right'
+    format: (current, total) => `Page ${current} of ${total}`,
   },
-  pageGap: 40,
-  pageBreakBackground: '#f0f0f0',
+  pageGap: 40,              // gap between visual pages (px)
+  pageBreakBackground: '#e8e8e8',
 });
 ```
 
@@ -88,19 +105,19 @@ FolioExtension.configure({
 
 | Name    | Dimensions         |
 |---------|--------------------|
-| A3      | 297 × 420 mm      |
-| A4      | 210 × 297 mm      |
-| A5      | 148 × 210 mm      |
-| Letter  | 8.5 × 11 in       |
-| Legal   | 8.5 × 14 in       |
-| Tabloid | 11 × 17 in        |
+| A3      | 297 x 420 mm      |
+| A4      | 210 x 297 mm      |
+| A5      | 148 x 210 mm      |
+| Letter  | 8.5 x 11 in       |
+| Legal   | 8.5 x 14 in       |
+| Tabloid | 11 x 17 in        |
 
 ## Roadmap
 
-- [x] Phase 1: Page layout, pagination, text formatting, print
-- [ ] Phase 2: Lists, tables, table splitting, page numbers
-- [ ] Phase 3: Images, SVG, charts, math equations, TOC
-- [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, export
+- [x] Phase 1: Page layout, pagination, headers/footers, page numbers, print, rich text, lists, tables
+- [ ] Phase 2: Table splitting across pages, image support
+- [ ] Phase 3: SVG, charts, math equations, table of contents
+- [ ] Phase 4: Virtual scrolling (100+ pages), multi-column, PDF/DOCX export
 
 ## License
 

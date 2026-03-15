@@ -44,18 +44,3 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-export interface PageMeta {
-  pageIndex: number;
-  pageCount: number;
-}
-
-export interface PaginationState {
-  pageCount: number;
-  currentPage: number;
-  isRecalculating: boolean;
-}
-
-export interface SplitResult {
-  fits: number;
-  overflow: number;
-}
